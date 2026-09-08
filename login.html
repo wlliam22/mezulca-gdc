@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Control de Créditos - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-chart-line text-3xl text-blue-600"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Control de Créditos</h1>
+            <p class="text-gray-600 text-sm">Sistema de Gestión de Cobranzas</p>
+        </div>
+        
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div class="relative">
+                    <i class="fas fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                    <input type="email" id="emailInput" placeholder="admin@empresa.com" 
+                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
+                    <input type="password" id="passwordInput" placeholder="••••••••" 
+                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+            </div>
+            
+            <button type="submit" id="loginBtn" 
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Iniciar Sesión</span>
+            </button>
+            
+            <div id="errorMessage" class="text-red-500 text-sm text-center hidden"></div>
+        </form>
+        
+        <p class="text-xs text-gray-500 text-center mt-6">
+            <i class="fas fa-lock mr-1"></i> Sistema privado - Acceso restringido
+        </p>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js"
+            }
+        }
+    </script>
+    
+    <script type="module">
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+        
+        // ====== CONFIGURACIÓN FIREBASE ======
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1Twnlwxfe_k9vqRRiNlmGvWhgXaHFP5M",
+            authDomain: "mezulcagdc.firebaseapp.com",
+            projectId: "mezulcagdc",
+            storageBucket: "mezulcagdc.appspot.com",
+        };
+        // ====================================
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        // Verificar sesión activa
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = '/index.html';
+            }
+        });
+        
+        // Manejar login
+        const form = document.getElementById('loginForm');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const errorDiv = document.getElementById('errorMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorDiv.classList.add('hidden');
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            
+            try {
+                await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                window.location.href = '/index.html';
+            } catch (error) {
+                errorDiv.classList.remove('hidden');
+                if (error.code === 'auth/user-not-found') {
+                    errorDiv.textContent = '❌ Usuario no encontrado';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorDiv.textContent = '❌ Contraseña incorrecta';
+                } else {
+                    errorDiv.textContent = '❌ Error de conexión. Intenta de nuevo.';
+                }
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Iniciar Sesión</span>';
+            }
+        });
+    </script>
+</body>
+</html>

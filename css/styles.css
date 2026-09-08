@@ -1,0 +1,115 @@
+/* Estilos para modales y transiciones */
+.modal {
+    transition: opacity 0.3s ease;
+}
+
+.modal:not(.hidden) {
+    display: flex !important;
+}
+
+/* Animación para filas de tabla */
+#tbodyCotizaciones tr {
+    transition: background-color 0.2s ease;
+}
+
+#tbodyCotizaciones tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Badges de situación */
+.badge-vigente {
+    @apply px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium;
+}
+
+.badge-vencido {
+    @apply px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium;
+}
+
+.badge-pagado {
+    @apply px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium;
+}
+
+/* Estilos para las tarjetas de clientes */
+.cliente-card {
+    @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow;
+}
+
+/* Scroll suave para tablas */
+.table-container {
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+}
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Modales */
+.modal {
+    display: none;
+    backdrop-filter: blur(2px);
+}
+
+.modal:not(.hidden) {
+    display: flex !important;
+}
+
+/* Scroll suave para tablas */
+#tbodyCotizaciones tr {
+    transition: background-color 0.15s ease;
+}
+
+#tbodyCotizaciones tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Badges de situación */
+.badge-vigente {
+    @apply px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium;
+}
+
+.badge-vencido {
+    @apply px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium;
+}
+
+.badge-pagado {
+    @apply px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium;
+}
+
+/* Tarjetas de clientes */
+.cliente-card {
+    @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow;
+}
+
+/* Estilos para el sticky header */
+.sticky {
+    position: sticky;
+    z-index: 30;
+}
+
+/* Scroll en modales */
+.modal .max-h-\[90vh\] {
+    max-height: 90vh;
+}
+
+/* Estilo para inputs tipo file (opcional) */
+input[type="file"] {
+    cursor: pointer;
+}
+
+/* Mejoras para móviles */
+@media (max-width: 640px) {
+    .tab-btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+    }
+    .tab-btn i {
+        margin-right: 0.25rem;
+    }
+}
