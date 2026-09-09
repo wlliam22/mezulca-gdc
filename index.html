@@ -11,26 +11,30 @@
     <!-- FontAwesome para íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     
+    <!-- Librerías jsPDF para exportación a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
     <!-- Estilos personalizados -->
     <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body>
-    <div id="app" class="min-h-screen bg-gray-50">
+<body class="bg-gray-50 text-gray-800 antialiased font-sans">
+    <div id="app" class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-white shadow-md sticky top-0 z-40">
+        <header class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
             <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
                         <i class="fas fa-chart-line text-white text-xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-gray-800">Control de Créditos</h1>
-                        <span class="text-xs text-gray-500">MezulcaGDC</span>
+                        <h1 class="text-xl font-bold text-gray-800 leading-tight">Control de Créditos</h1>
+                        <span class="text-xs text-gray-500 font-medium">MezulcaGDC</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span id="currentMonth" class="text-sm text-gray-600 font-medium"></span>
-                    <button id="btnLogout" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition flex items-center gap-1.5">
+                    <span id="currentMonth" class="text-sm text-gray-600 font-medium hidden sm:inline-block"></span>
+                    <button id="btnLogout" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition flex items-center gap-1.5 font-medium cursor-pointer" aria-label="Cerrar sesión">
                         <i class="fas fa-sign-out-alt"></i> Salir
                     </button>
                 </div>
@@ -38,16 +42,16 @@
         </header>
 
         <!-- Navegación Principal (Tabs) -->
-        <nav class="bg-white border-b border-gray-200 sticky top-[73px] z-30">
+        <nav class="bg-white border-b border-gray-200 sticky top-[65px] z-30">
             <div class="max-w-7xl mx-auto px-4">
                 <div class="flex space-x-6">
-                    <button class="tab-btn active py-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm" data-view="cotizaciones">
+                    <button class="tab-btn active py-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="cotizaciones">
                         <i class="fas fa-file-invoice mr-2"></i>Cotizaciones
                     </button>
-                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm" data-view="clientes">
+                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="clientes">
                         <i class="fas fa-users mr-2"></i>Clientes
                     </button>
-                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm" data-view="reportes">
+                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="reportes">
                         <i class="fas fa-chart-bar mr-2"></i>Reportes
                     </button>
                 </div>
@@ -55,56 +59,56 @@
         </nav>
 
         <!-- Contenido Principal -->
-        <main class="max-w-7xl mx-auto px-4 py-6">
+        <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
             <!-- ==================== VISTA: COTIZACIONES ==================== -->
             <section id="view-cotizaciones" class="view-section">
                 <!-- Toolbar -->
                 <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
                     <div class="flex items-center gap-3 flex-wrap">
-                        <input type="month" id="mesSelector" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" />
-                        <button id="btnNuevaCotizacion" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                        <input type="month" id="mesSelector" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm" aria-label="Seleccionar mes" />
+                        <button id="btnNuevaCotizacion" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm cursor-pointer">
                             <i class="fas fa-plus"></i> Nueva Cotización
                         </button>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="relative">
                             <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
-                            <input type="text" id="buscarCliente" placeholder="Buscar cliente..." 
-                                   class="pl-9 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm w-56" />
+                            <input type="text" id="buscarCliente" placeholder="Buscar cliente o factura..." 
+                                   class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-56 sm:w-64 shadow-sm" />
                         </div>
-                        <button id="btnNuevoCliente" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm" title="Nuevo Cliente">
+                        <button id="btnNuevoCliente" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm shadow-sm cursor-pointer" title="Nuevo Cliente" aria-label="Agregar cliente">
                             <i class="fas fa-user-plus"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- Tabla de Cotizaciones -->
-                <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200" id="tablaCotizaciones">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Factura</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emisión</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Crédito</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vence</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Deuda Bs</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Deuda $</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Saldo $</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Días Venc.</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Situación</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No. Factura</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Emisión</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Crédito</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vence</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Deuda Bs</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Deuda $</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo $</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Días Venc.</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Situación</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="tbodyCotizaciones" class="bg-white divide-y divide-gray-200">
+                        <tbody id="tbodyCotizaciones" class="bg-white divide-y divide-gray-200 text-sm">
                             <!-- Filas generadas dinámicamente -->
                         </tbody>
-                        <tfoot class="bg-gray-50 font-bold">
+                        <tfoot class="bg-gray-50 font-bold border-t border-gray-200">
                             <tr id="footerTotales">
-                                <td colspan="5" class="px-4 py-3 text-right text-sm text-gray-700">TOTALES:</td>
-                                <td id="totalBs" class="px-4 py-3 text-right text-sm text-gray-700">Bs 0,00</td>
-                                <td id="totalUSD" class="px-4 py-3 text-right text-sm text-gray-700">$ 0,00</td>
-                                <td id="totalSaldo" class="px-4 py-3 text-right text-sm text-gray-700">$ 0,00</td>
+                                <td colspan="5" class="px-4 py-3 text-right text-sm text-gray-700 uppercase tracking-wider">TOTALES:</td>
+                                <td id="totalBs" class="px-4 py-3 text-right text-sm text-gray-900">Bs 0,00</td>
+                                <td id="totalUSD" class="px-4 py-3 text-right text-sm text-gray-900">$ 0,00</td>
+                                <td id="totalSaldo" class="px-4 py-3 text-right text-sm text-gray-900">$ 0,00</td>
                                 <td colspan="3"></td>
                             </tr>
                         </tfoot>
@@ -114,13 +118,12 @@
 
             <!-- ==================== VISTA: CLIENTES ==================== -->
             <section id="view-clientes" class="view-section hidden">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex justify-between items-center mb-4">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div class="flex justify-between items-center mb-6">
                         <h2 class="text-xl font-bold text-gray-800">
                             <i class="fas fa-users text-blue-600 mr-2"></i>Gestión de Clientes
                         </h2>
-                        <!-- ✅ AGREGAR ESTE BOTÓN -->
-                        <button id="btnNuevoClienteDesdeClientes" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm">
+                        <button id="btnNuevoClienteDesdeClientes" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer">
                             <i class="fas fa-plus"></i> Nuevo Cliente
                         </button>
                     </div>
@@ -132,33 +135,33 @@
 
             <!-- ==================== VISTA: REPORTES ==================== -->
             <section id="view-reportes" class="view-section hidden">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6">
                         <i class="fas fa-chart-bar text-blue-600 mr-2"></i>Reportes y Filtros
                     </h2>
                     <div class="flex flex-wrap gap-4 mb-6">
-                        <input type="month" id="filtroMesReporte" class="px-3 py-2 border rounded-lg text-sm" />
-                        <select id="filtroClienteReporte" class="px-3 py-2 border rounded-lg text-sm flex-1 min-w-[200px]">
+                        <input type="month" id="filtroMesReporte" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 shadow-sm" aria-label="Filtrar por mes" />
+                        <select id="filtroClienteReporte" class="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-[200px] focus:ring-2 focus:ring-blue-500 shadow-sm">
                             <option value="">Todos los clientes</option>
                         </select>
-                        <button id="btnExportarPDF" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm">
+                        <button id="btnExportarPDF" class="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm shadow-sm cursor-pointer">
                             <i class="fas fa-file-pdf"></i> Exportar PDF
                         </button>
                     </div>
-                    <div class="overflow-x-auto" id="tablaReportesContainer">
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg" id="tablaReportesContainer">
                         <table class="min-w-full divide-y divide-gray-200" id="tablaReportes">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Factura</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Emisión</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vence</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Deuda $</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Saldo $</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Situación</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">No. Factura</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cliente</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Emisión</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Vence</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Deuda $</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Saldo $</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Situación</th>
                                 </tr>
                             </thead>
-                            <tbody id="tbodyReportes" class="bg-white divide-y divide-gray-200"></tbody>
+                            <tbody id="tbodyReportes" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
                         </table>
                     </div>
                 </div>
@@ -169,37 +172,37 @@
     <!-- ==================== MODALES ==================== -->
 
     <!-- MODAL: Cliente -->
-    <div id="modalCliente" class="modal hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
-            <div class="flex justify-between items-center mb-4">
+    <div id="modalCliente" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transition-all transform scale-100">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-lg font-bold text-gray-800">
                     <i class="fas fa-user-plus text-green-600 mr-2"></i>Nuevo Cliente
                 </h3>
-                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600">
+                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            <form id="formCliente">
+            <form id="formCliente" autocomplete="off">
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Empresa *</label>
+                    <label for="clienteNombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre Empresa *</label>
                     <input type="text" id="clienteNombre" placeholder="Ej: Belmeny Group" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" required />
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                    <label for="clienteTelefono" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
                     <input type="tel" id="clienteTelefono" placeholder="0412-1234567" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                    <label for="clienteDireccion" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
                     <input type="text" id="clienteDireccion" placeholder="Dirección del cliente" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
                 </div>
-                <div class="flex justify-end gap-3">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-sm">
+                <div class="flex justify-end gap-3 border-t pt-4">
+                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
                         <i class="fas fa-save"></i> Guardar
                     </button>
                 </div>
@@ -208,36 +211,37 @@
     </div>
 
     <!-- MODAL: Cotización -->
-    <div id="modalCotizacion" class="modal hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fadeIn max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
+    <div id="modalCotizacion" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transition-all transform max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-lg font-bold text-gray-800">
                     <i class="fas fa-file-invoice text-blue-600 mr-2"></i>Nueva Cotización
                 </h3>
-                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600">
+                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            <form id="formCotizacion">
+            <form id="formCotizacion" autocomplete="off">
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Número de Factura *</label>
+                    <label for="cotNumeroFactura" class="block text-sm font-medium text-gray-700 mb-1">Número de Factura *</label>
                     <input type="text" id="cotNumeroFactura" placeholder="C26-022527" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 font-mono" required />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm" required />
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-                    <select id="cotCliente" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                    <label for="cotCliente" class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
+                    <select id="cotCliente" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
                         <option value="">Seleccionar cliente</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Emisión *</label>
+                    <label for="cotFechaEmision" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Emisión *</label>
                     <input type="date" id="cotFechaEmision" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" required />
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Días de Crédito</label>
-                    <select id="cotDiasCredito" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="cotDiasCredito" class="block text-sm font-medium text-gray-700 mb-1">Días de Crédito *</label>
+                    <select id="cotDiasCredito" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                        <option value="" disabled selected>Seleccionar días...</option>
                         <option value="5">5 días</option>
                         <option value="10">10 días</option>
                         <option value="15">15 días</option>
@@ -245,24 +249,24 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Monto Deuda (Bs)</label>
-                    <input type="number" id="cotMontoBs" placeholder="0.00" step="0.01" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    <label for="cotMontoBs" class="block text-sm font-medium text-gray-700 mb-1">Monto Deuda (Bs)</label>
+                    <input type="number" id="cotMontoBs" placeholder="0.00" step="0.01" min="0"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" />
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Monto Deuda ($) *</label>
-                    <input type="number" id="cotMontoUSD" placeholder="0.00" step="0.01" 
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required />
+                    <label for="cotMontoUSD" class="block text-sm font-medium text-gray-700 mb-1">Monto Deuda ($) *</label>
+                    <input type="number" id="cotMontoUSD" placeholder="0.00" step="0.01" min="0.01"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" required />
                 </div>
-                <div class="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                <div class="mb-4 text-sm text-gray-600 bg-blue-50/60 border border-blue-100 p-3 rounded-lg">
                     <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                    Fecha de vencimiento: <span id="cotFechaVencimientoPreview" class="font-medium">-</span>
+                    Fecha de vencimiento: <span id="cotFechaVencimientoPreview" class="font-semibold text-blue-900">-</span>
                 </div>
-                <div class="flex justify-end gap-3">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-sm">
+                <div class="flex justify-end gap-3 border-t pt-4">
+                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
                         <i class="fas fa-save"></i> Guardar
                     </button>
                 </div>
@@ -271,41 +275,41 @@
     </div>
 
     <!-- MODAL: Abono -->
-    <div id="modalAbono" class="modal hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
-            <div class="flex justify-between items-center mb-4">
+    <div id="modalAbono" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transition-all transform">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h3 class="text-lg font-bold text-gray-800">
                     <i class="fas fa-hand-holding-usd text-green-600 mr-2"></i>Registrar Abono
                 </h3>
-                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600">
+                <button class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            <form id="formAbono">
+            <form id="formAbono" autocomplete="off">
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-                    <select id="abonoCliente" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                    <label for="abonoCliente" class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
+                    <select id="abonoCliente" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
                         <option value="">Seleccionar cliente</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cotización *</label>
-                    <select id="abonoCotizacion" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                    <label for="abonoCotizacion" class="block text-sm font-medium text-gray-700 mb-1">Cotización *</label>
+                    <select id="abonoCotizacion" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
                         <option value="">Primero selecciona un cliente</option>
                     </select>
-                    <div id="infoSaldo" class="mt-2 text-sm text-gray-600 hidden">
+                    <div id="infoSaldo" class="mt-2 text-sm bg-gray-50 border border-gray-200 p-2.5 rounded-lg hidden">
                         <i class="fas fa-info-circle text-blue-500 mr-1"></i>
                         Saldo pendiente: <span id="saldoPendienteDisplay" class="font-bold text-blue-600">$0.00</span>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Monto a abonar ($) *</label>
+                    <label for="abonoMonto" class="block text-sm font-medium text-gray-700 mb-1">Monto a abonar ($) *</label>
                     <input type="number" id="abonoMonto" placeholder="0.00" step="0.01" min="0.01"
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required />
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required />
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Método de Pago *</label>
-                    <select id="abonoMetodo" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" required>
+                    <label for="abonoMetodo" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago *</label>
+                    <select id="abonoMetodo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
                         <option value="">Seleccionar método</option>
                         <option value="Transferencia Nacional">Transferencia Nacional</option>
                         <option value="Efectivo $">Efectivo ($)</option>
@@ -314,11 +318,11 @@
                         <option value="Pago Móvil">Pago Móvil</option>
                     </select>
                 </div>
-                <div class="flex justify-end gap-3">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition text-sm">
+                <div class="flex justify-end gap-3 border-t pt-4">
+                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">
                         Cancelar
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm">
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
                         <i class="fas fa-save"></i> Registrar Abono
                     </button>
                 </div>
@@ -339,6 +343,6 @@
     </script>
 
     <!-- Script principal -->
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="./js/app.js"></script>
 </body>
 </html>
