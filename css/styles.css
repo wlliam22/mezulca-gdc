@@ -40,6 +40,7 @@
     max-height: 600px;
     overflow-y: auto;
 }
+
 /* Animaciones */
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.95); }
@@ -111,5 +112,59 @@ input[type="file"] {
     }
     .tab-btn i {
         margin-right: 0.25rem;
+    }
+}
+
+/* ==========================================
+   ESTILOS EXCLUSIVOS PARA IMPRESIÓN (PRINT)
+   ========================================== */
+@media print {
+    /* Ocultar interfaz y navegación */
+    header, 
+    nav, 
+    .modal,
+    #view-cotizaciones,
+    #view-clientes {
+        display: none !important;
+    }
+
+    /* Ocultar controles de filtrado y encabezado de la sección reportes */
+    #view-reportes h2,
+    #view-reportes .flex {
+        display: none !important;
+    }
+
+    /* Resetear contenedor principal para evitar la hoja en blanco */
+    html, body, #app, main, #view-reportes {
+        background: transparent !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: auto !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* Posicionar la tabla al tope de la primera página */
+    #tablaReportesContainer {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
+    #tablaReportes {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    /* Configuración de hoja horizontal sin márgenes excesivos */
+    @page {
+        size: letter landscape;
+        margin: 10mm;
     }
 }

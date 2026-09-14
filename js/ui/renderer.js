@@ -43,9 +43,9 @@ export function renderizarCotizaciones(cotizaciones, containerId) {
                 <td class="px-4 py-3 text-sm text-center">${cot.diasCredito || 5}</td>
                 <td class="px-4 py-3 text-sm">${formatFechaCorta(cot.fechaVencimiento)}</td>
                 <td class="px-4 py-3 text-sm font-medium">${cot.clienteNombre || '-'}</td>
-                <td class="px-4 py-3 text-sm text-right">${formatBs(cot.montoDeudaBs)}</td>
-                <td class="px-4 py-3 text-sm text-right font-medium">${formatUSD(cot.montoDeudaUSD)}</td>
-                <td class="px-4 py-3 text-sm text-right font-bold ${cot.saldoPendiente > 0 ? 'text-red-600' : 'text-green-600'}">
+                <td class="px-4 py-3 text-sm text-right whitespace-nowrap">${formatBs(cot.montoDeudaBs)}</td>
+                <td class="px-4 py-3 text-sm text-right font-medium whitespace-nowrap">${formatUSD(cot.montoDeudaUSD)}</td>
+                <td class="px-4 py-3 text-sm text-right font-bold whitespace-nowrap ${cot.saldoPendiente > 0 ? 'text-red-600' : 'text-green-600'}">
                     ${formatUSD(cot.saldoPendiente)}
                 </td>
                 <td class="px-4 py-3 text-sm text-center ${cot.diasVencidos > 0 ? 'text-red-600 font-bold' : 'text-gray-400'}">
@@ -117,9 +117,9 @@ export function renderizarClientes(clientes, containerId) {
     }
     
     container.innerHTML = clientes.map(cliente => `
-        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow hover:border-blue-300">
+        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow hover:border-blue-300 relative group">
             <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
+                <div class="flex-1 min-w-0 pr-6">
                     <h4 class="font-bold text-gray-800 truncate" title="${cliente.nombreEmpresa}">${cliente.nombreEmpresa}</h4>
                     ${cliente.telefono ? `
                         <p class="text-sm text-gray-600 mt-1 flex items-center">
@@ -132,43 +132,68 @@ export function renderizarClientes(clientes, containerId) {
                         </p>
                     ` : ''}
                 </div>
-                <span class="text-xs text-gray-400 flex-shrink-0 ml-2">
+                <button type="button" 
+                        class="btn-eliminar-cliente text-gray-400 hover:text-red-600 p-1.5 rounded transition"
+                        data-cliente-id="${cliente.id}"
+                        data-cliente-nombre="${cliente.nombreEmpresa}"
+                        title="Desactivar cliente">
+                    <i class="fas fa-trash-alt text-sm"></i>
+                </button>
+            </div>
+            <div class="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
+                <span class="font-mono text-[10px]">ID: ${cliente.id.slice(0, 8)}...</span>
+                <span>
                     <i class="fas fa-calendar-alt mr-1"></i>
                     ${cliente.createdAt ? new Date(cliente.createdAt.toDate ? cliente.createdAt.toDate() : cliente.createdAt).toLocaleDateString('es-ES') : 'Reciente'}
                 </span>
             </div>
         </div>
     `).join('');
+
+    container.querySelectorAll('.btn-eliminar-cliente').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const clienteId = this.dataset.clienteId;
+            const clienteNombre = this.dataset.clienteNombre;
+            
+            window.dispatchEvent(new CustomEvent('eliminarCliente', {
+                detail: { clienteId, clienteNombre }
+            }));
+        });
+    });
 }
 
-// Render del formato "RESUMEN CLIENTE 2026" (Imagen 1)
+// Render del formato "RESUMEN CLIENTE 2026" (REPORTE POR CLIENTE)
 export function renderizarReporteClienteHTML(nombreCliente, cotizaciones = [], abonos = []) {
     let totalSubTotalUSD = 0;
     let totalAbonoUSD = 0;
 
     const filasCotizaciones = cotizaciones.map((cot, index) => {
         totalSubTotalUSD += (cot.montoDeudaUSD || 0);
+        const despacho = cot.despachoManual || cot.observaciones || cot.despacho || '-';
+        
         return `
             <tr>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${index + 1}</td>
-                <td style="border: 1px solid #000; padding: 4px;">${cot.numeroFactura || '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px;">${cot.observaciones || '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center; text-transform: uppercase;">${cot.estatus || 'PENDIENTE'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${formatFechaCorta(cot.fechaEmision)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatUSD(cot.montoDeudaUSD)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${index + 1}</td>
+                <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">${cot.numeroFactura || '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${despacho}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center; text-transform: uppercase;">${cot.estatus || 'PENDIENTE'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${formatFechaCorta(cot.fechaEmision)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap;">${formatUSD(cot.montoDeudaUSD)}</td>
             </tr>
         `;
     }).join('');
 
     const filasAbonos = abonos.map(ab => {
-        totalAbonoUSD += (ab.montoUSD || 0);
+        const montoAbonado = ab.montoUSD || ab.montoAbonadoUSD || 0;
+        totalAbonoUSD += montoAbonado;
+        const etiquetaAbono = ab.metodoPago ? `ABONO (${ab.metodoPago})` : 'ABONO';
+
         return `
             <tr>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatBs(ab.tasaBCV || 0)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatBs(ab.montoBs || 0)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">ABONO</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${formatFechaCorta(ab.fecha)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatUSD(ab.montoUSD)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${etiquetaAbono}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap;">${ab.montoBs ? formatBs(ab.montoBs) : 'Bs 0,00'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;" colspan="2">${formatFechaCorta(ab.fecha || ab.fechaAbono)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap;">${formatUSD(montoAbonado)}</td>
             </tr>
         `;
     }).join('');
@@ -176,48 +201,57 @@ export function renderizarReporteClienteHTML(nombreCliente, cotizaciones = [], a
     const saldoPendiente = totalSubTotalUSD - totalAbonoUSD;
 
     return `
-        <div style="font-family: Arial, sans-serif; color: #000; max-width: 800px; margin: 0 auto; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h2 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">RESUMEN ${nombreCliente} ${new Date().getFullYear()}</h2>
-                <div style="font-size: 13px;">Fecha de Elaboración: <strong>${new Date().toLocaleDateString('es-ES')}</strong></div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+        <div style="font-family: Arial, sans-serif; color: #000; width: 100%; max-width: 900px; margin: 0 auto; padding: 10px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #000;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #000; padding: 4px; width: 40px;">ITEM</th>
-                        <th style="border: 1px solid #000; padding: 4px;">No COTIZACION</th>
-                        <th style="border: 1px solid #000; padding: 4px;">DESPACHO MANUAL</th>
-                        <th style="border: 1px solid #000; padding: 4px;">STATUS</th>
-                        <th style="border: 1px solid #000; padding: 4px;">FECHA</th>
-                        <th style="border: 1px solid #000; padding: 4px;">MONTO $</th>
+                    <!-- Encabezado con Nombre de Cliente y Fecha -->
+                    <tr>
+                        <td colspan="6" style="border: 1px solid #000; padding: 10px; background-color: #ffffff;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h2 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase;">
+                                    RESUMEN ${nombreCliente} ${new Date().getFullYear()}
+                                </h2>
+                                <div style="font-size: 12px; text-align: right;">
+                                    Fecha de Elaboración: <strong>${new Date().toLocaleDateString('es-ES')}</strong>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Fila de Títulos de Columnas -->
+                    <tr style="background-color: #f2f2f2; font-weight: bold; text-align: center;">
+                        <th style="border: 1px solid #000; padding: 6px; width: 50px;">ITEM</th>
+                        <th style="border: 1px solid #000; padding: 6px;">No COTIZACION</th>
+                        <th style="border: 1px solid #000; padding: 6px;">DESPACHO MANUAL</th>
+                        <th style="border: 1px solid #000; padding: 6px;">STATUS</th>
+                        <th style="border: 1px solid #000; padding: 6px;">FECHA</th>
+                        <th style="border: 1px solid #000; padding: 6px; text-align: right;">MONTO $</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${filasCotizaciones.length ? filasCotizaciones : '<tr><td colspan="6" style="border:1px solid #000; padding:8px; text-align:center;">Sin registros</td></tr>'}
+                    ${filasCotizaciones.length ? filasCotizaciones : '<tr><td colspan="6" style="border: 1px solid #000; padding: 10px; text-align: center;">Sin registros de cotizaciones</td></tr>'}
                 </tbody>
             </table>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: -1px;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #000; padding: 4px;">COTIZACION DOLAR BCV DEL DIA</th>
-                        <th style="border: 1px solid #000; padding: 4px;">DEPOSITO (Bs)</th>
-                        <th style="border: 1px solid #000; padding: 4px;" colspan="2">Sub Total (Dolares)</th>
-                        <th style="border: 1px solid #000; padding: 4px; text-align: right;">${formatUSD(totalSubTotalUSD)}</th>
+                    <tr style="background-color: #f2f2f2; font-weight: bold;">
+                        <th style="border: 1px solid #000; padding: 6px; text-align: center;">COTIZACION DOLAR BCV DEL DIA</th>
+                        <th style="border: 1px solid #000; padding: 6px; text-align: center;">DEPOSITO (Bs)</th>
+                        <th style="border: 1px solid #000; padding: 6px; text-align: center;" colspan="2">Sub Total (Dolares)</th>
+                        <th style="border: 1px solid #000; padding: 6px; text-align: right; white-space: nowrap;">${formatUSD(totalSubTotalUSD)}</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${filasAbonos}
                     <tr>
                         <td colspan="3" style="border: none;"></td>
-                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: right;">Total Abono</td>
-                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: right;">${formatUSD(totalAbonoUSD)}</td>
+                        <td style="border: 1px solid #000; padding: 6px; font-weight: bold; text-align: right;">Total Abono</td>
+                        <td style="border: 1px solid #000; padding: 6px; font-weight: bold; text-align: right; white-space: nowrap;">${formatUSD(totalAbonoUSD)}</td>
                     </tr>
                     <tr>
                         <td colspan="3" style="border: none;"></td>
-                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: right; background-color: #e6e6e6;">Total (Dolares)</td>
-                        <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-align: right; background-color: #e6e6e6;">${formatUSD(saldoPendiente)}</td>
+                        <td style="border: 1px solid #000; padding: 6px; font-weight: bold; text-align: right; background-color: #e6e6e6;">Total (Dolares)</td>
+                        <td style="border: 1px solid #000; padding: 6px; font-weight: bold; text-align: right; background-color: #e6e6e6; white-space: nowrap;">${formatUSD(saldoPendiente)}</td>
                     </tr>
                 </tbody>
             </table>
@@ -225,59 +259,71 @@ export function renderizarReporteClienteHTML(nombreCliente, cotizaciones = [], a
     `;
 }
 
-// Render del formato "CONTROL DE CREDITOS MES" (Imagen 2)
+// Render del formato "CONTROL DE CREDITOS MES" (REPORTE MENSUAL)
 export function renderizarReporteMensualHTML(nombreMes, cotizaciones = [], tasaBCVActual = 0) {
     let totalBs = 0;
     let totalUSD = 0;
+    let totalAbonado = 0;
 
     const filas = cotizaciones.map(cot => {
+        const abonado = cot.montoAbonadoUSD || (cot.montoDeudaUSD - (cot.saldoPendiente ?? cot.montoDeudaUSD)) || 0;
         totalBs += cot.montoDeudaBs || 0;
         totalUSD += cot.montoDeudaUSD || 0;
+        totalAbonado += abonado;
+
         const situacion = cot.saldoPendiente <= 0 ? 'Pagada' : (cot.diasVencidos > 0 ? 'Vencida' : 'Vigente');
 
         return `
             <tr>
-                <td style="border: 1px solid #000; padding: 4px;">${cot.numeroFactura || '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${formatFechaCorta(cot.fechaEmision)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${cot.diasCredito || 5}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${formatFechaCorta(cot.fechaVencimiento)}</td>
-                <td style="border: 1px solid #000; padding: 4px;">${cot.clienteNombre || '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${cot.montoDeudaBs ? formatBs(cot.montoDeudaBs) : '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatUSD(cot.montoDeudaUSD)}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${cot.diasVencidos > 0 ? `-${cot.diasVencidos}` : '-'}</td>
-                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${situacion}</td>
+                <td style="border: 1px solid #000; padding: 5px; font-family: monospace;">${cot.numeroFactura || '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${formatFechaCorta(cot.fechaEmision)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${cot.diasCredito || 5}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${formatFechaCorta(cot.fechaVencimiento)}</td>
+                <td style="border: 1px solid #000; padding: 5px;">${cot.clienteNombre || '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap;">${cot.montoDeudaBs ? formatBs(cot.montoDeudaBs) : '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap;">${formatUSD(cot.montoDeudaUSD)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: right; white-space: nowrap; font-weight: bold;">${formatUSD(abonado)}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${cot.diasVencidos > 0 ? `-${cot.diasVencidos}` : '-'}</td>
+                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${situacion}</td>
             </tr>
         `;
     }).join('');
 
     return `
         <div style="font-family: Arial, sans-serif; color: #000; width: 100%; padding: 10px;">
-            <h2 style="text-align: center; font-size: 16px; font-weight: bold; text-transform: uppercase; margin-bottom: 15px;">
-                CONTROL DE CREDITOS ${nombreMes.toUpperCase()}
-            </h2>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #000;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #000; padding: 4px;">No. FACTURA</th>
-                        <th style="border: 1px solid #000; padding: 4px;">EMISION</th>
-                        <th style="border: 1px solid #000; padding: 4px;">CREDITO</th>
-                        <th style="border: 1px solid #000; padding: 4px;">VENCE</th>
-                        <th style="border: 1px solid #000; padding: 4px;">CLIENTE</th>
-                        <th style="border: 1px solid #000; padding: 4px;">DEUDA Bs</th>
-                        <th style="border: 1px solid #000; padding: 4px;">DEUDA $</th>
-                        <th style="border: 1px solid #000; padding: 4px;">DIAS</th>
-                        <th style="border: 1px solid #000; padding: 4px;">SITUACION</th>
+                    <!-- Encabezado del Mes abarcando las 10 Columnas -->
+                    <tr>
+                        <td colspan="10" style="border: 1px solid #000; padding: 10px; text-align: center; background-color: #ffffff;">
+                            <h2 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase;">
+                                CONTROL DE CREDITOS ${nombreMes.toUpperCase()}
+                            </h2>
+                        </td>
+                    </tr>
+                    <!-- Fila con Títulos de las Columnas -->
+                    <tr style="background-color: #f2f2f2; font-weight: bold; text-align: center;">
+                        <th style="border: 1px solid #000; padding: 6px;">No. FACTURA</th>
+                        <th style="border: 1px solid #000; padding: 6px;">EMISION</th>
+                        <th style="border: 1px solid #000; padding: 6px;">CREDITO</th>
+                        <th style="border: 1px solid #000; padding: 6px;">VENCE</th>
+                        <th style="border: 1px solid #000; padding: 6px;">CLIENTE</th>
+                        <th style="border: 1px solid #000; padding: 6px;">DEUDA Bs</th>
+                        <th style="border: 1px solid #000; padding: 6px;">DEUDA $</th>
+                        <th style="border: 1px solid #000; padding: 6px;">ABONADO $</th>
+                        <th style="border: 1px solid #000; padding: 6px;">DIAS</th>
+                        <th style="border: 1px solid #000; padding: 6px;">SITUACION</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${filas.length ? filas : '<tr><td colspan="9" style="border:1px solid #000; padding:8px; text-align:center;">No hay cotizaciones registradas</td></tr>'}
+                    ${filas.length ? filas : '<tr><td colspan="10" style="border: 1px solid #000; padding: 10px; text-align: center;">No hay cotizaciones registradas</td></tr>'}
                 </tbody>
                 <tfoot>
                     <tr style="font-weight: bold; background-color: #e6e6e6;">
-                        <td colspan="5" style="border: 1px solid #000; padding: 4px; text-align: right;">TOTALES:</td>
-                        <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatBs(totalBs)}</td>
-                        <td style="border: 1px solid #000; padding: 4px; text-align: right;">${formatUSD(totalUSD)}</td>
+                        <td colspan="5" style="border: 1px solid #000; padding: 6px; text-align: right;">TOTALES:</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right; white-space: nowrap;">${formatBs(totalBs)}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right; white-space: nowrap;">${formatUSD(totalUSD)}</td>
+                        <td style="border: 1px solid #000; padding: 6px; text-align: right; white-space: nowrap;">${formatUSD(totalAbonado)}</td>
                         <td colspan="2" style="border: 1px solid #000;"></td>
                     </tr>
                 </tfoot>

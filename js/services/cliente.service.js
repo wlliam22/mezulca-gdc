@@ -3,62 +3,67 @@ import {
     collection, 
     addDoc, 
     getDocs, 
-    query, 
-    orderBy, 
-    serverTimestamp,
-    where
+    updateDoc, 
+    doc, 
+    serverTimestamp 
 } from 'firebase/firestore';
 
-// Obtener todos los clientes
-export async function obtenerClientes() {
-    try {
-        const q = query(collection(db, 'clientes'), orderBy('nombreEmpresa'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-    } catch (error) {
-        console.error('Error al obtener clientes:', error);
-        return [];
-    }
-}
+const COLLECTION_NAME = "clientes";
 
-// Buscar clientes por nombre
-export async function buscarClientes(texto) {
+export async function crearCliente(clienteData) {
     try {
-        const q = query(
-            collection(db, 'clientes'),
-            orderBy('nombreEmpresa')
-        );
-        const snapshot = await getDocs(q);
-        const clientes = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        // Filtrar en memoria (Firestore no tiene búsqueda por texto nativa)
-        return clientes.filter(c => 
-            c.nombreEmpresa.toLowerCase().includes(texto.toLowerCase())
-        );
-    } catch (error) {
-        console.error('Error al buscar clientes:', error);
-        return [];
-    }
-}
-
-// Crear nuevo cliente
-export async function crearCliente(data) {
-    try {
-        const docRef = await addDoc(collection(db, 'clientes'), {
-            nombreEmpresa: data.nombre,
-            telefono: data.telefono || '',
-            direccion: data.direccion || '',
+        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+            nombreEmpresa: clienteData.nombreEmpresa.trim(),
+            telefono: clienteData.telefono?.trim() || '',
+            direccion: clienteData.direccion?.trim() || '',
+            activo: true,
             createdAt: serverTimestamp()
         });
-        return { success: true, id: docRef.id };
+        return { id: docRef.id, success: true };
     } catch (error) {
-        console.error('Error al crear cliente:', error);
-        throw new Error('No se pudo crear el cliente');
+        console.error("Error al crear cliente:", error);
+        throw error;
+    }
+}
+
+export async function obtenerClientes() {
+    try {
+        // Consulta limpia a la colección sin restricciones de índice
+        const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+        
+        const clientes = snapshot.docs
+            .map(docSnap => ({
+                id: docSnap.id,
+                ...docSnap.data()
+            }))
+            // Mantiene los activos y los que no tenían la propiedad 'activo' definida
+            .filter(cliente => cliente.activo !== false);
+
+        // Ordenamiento seguro
+        clientes.sort((a, b) => {
+            const nombreA = a.nombreEmpresa || '';
+            const nombreB = b.nombreEmpresa || '';
+            return nombreA.localeCompare(nombreB);
+        });
+
+        console.log("Clientes cargados desde Firestore:", clientes);
+        return clientes;
+    } catch (error) {
+        console.error("Error al obtener clientes:", error);
+        return [];
+    }
+}
+
+// Soft Delete (Borrado Lógico)
+export async function desactivarCliente(clienteId) {
+    try {
+        const clienteRef = doc(db, COLLECTION_NAME, clienteId);
+        await updateDoc(clienteRef, {
+            activo: false
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error al desactivar cliente:", error);
+        throw error;
     }
 }

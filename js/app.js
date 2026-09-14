@@ -1,11 +1,10 @@
 import { checkAuth, logout } from './auth/auth.js';
-import { obtenerClientes } from './services/cliente.service.js';
+import { obtenerClientes, desactivarCliente } from './services/cliente.service.js';
 import { 
     escucharCotizaciones, 
     obtenerCotizacionesPorMes, 
     obtenerCotizacionesPorCliente,
-    obtenerAbonosPorCliente,
-    calcularEstatus 
+    obtenerAbonosPorCliente
 } from './services/cotizacion.service.js';
 import { obtenerTasaBCV } from './services/bcv.service.js';
 import { 
@@ -20,11 +19,11 @@ import {
     configurarFormAbono, 
     configurarFormCotizacion 
 } from './ui/modals.js';
-import { getMesActual, formatFechaCorta } from './utils/dateUtils.js';
-import { formatUSD } from './utils/currencyUtils.js';
+import { getMesActual } from './utils/dateUtils.js';
 import { cargarClientesEnSelect } from './ui/selects.js';
 import { setupTabs } from './ui/tabs.js';
 import { showToast } from './utils/toast.js';
+import { mostrarConfirmacion } from './utils/dialog.js';
 
 let unsubscribeCotizaciones = null;
 let clientesCache = [];
@@ -124,13 +123,35 @@ let recargando = false;
     
     await recargarDatos();
     configurarReportes();
+
+    // Evento de desactivación lógica de clientes
+    window.addEventListener('eliminarCliente', async (e) => {
+        const { clienteId, clienteNombre } = e.detail;
+    
+        const confirmado = await mostrarConfirmacion({
+            titulo: '¿Desactivar cliente?',
+            mensaje: `¿Estás seguro de desactivar al cliente "${clienteNombre}"? No aparecerá en los listados pero sus cotizaciones se mantendrán.`,
+            textoBotonAceptar: 'Desactivar',
+            textoBotonCancelar: 'Cancelar',
+            tipo: 'danger'
+        });
+
+        if (confirmado) {
+            try {
+                await desactivarCliente(clienteId);
+                showToast('Cliente desactivado con éxito', 'success');
+                await recargarDatos();
+            } catch (error) {
+                showToast('Error al desactivar el cliente', 'error');
+            }
+        }
+    });
 })();
 
 function configurarReportes() {
     const btnPDF = document.getElementById('btnExportarPDF');
     const filtroMes = document.getElementById('filtroMesReporte');
     const filtroCliente = document.getElementById('filtroClienteReporte');
-    const contenedorVista = document.getElementById('tbodyReportes')?.parentElement;
 
     if (filtroMes) {
         filtroMes.value = getMesActual();
@@ -143,17 +164,48 @@ function configurarReportes() {
     
     if (btnPDF) {
         btnPDF.addEventListener('click', () => {
-            if (!contenedorVista || contenedorVista.innerText.includes('No hay datos')) {
-                showToast('No hay datos disponibles para imprimir', 'warning');
+            const contenedorVista = document.getElementById('tablaReportesContainer');
+            
+            if (!contenedorVista || !contenedorVista.innerText.trim() || contenedorVista.innerText.includes('No hay datos')) {
+                showToast('No hay datos disponibles para exportar', 'warning');
                 return;
             }
-            window.print();
+
+            const tabla = document.getElementById('tablaReportes');
+
+            // Caso 1: Si hay una tabla HTML válida (Reporte Mensual General), usar jsPDF + AutoTable
+            if (tabla && window.jspdf && window.jspdf.jsPDF) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'letter'
+                });
+
+                doc.setFontSize(14);
+                doc.text("REPORTE DE CRÉDITOS Y COBRANZAS - MEZULCAGDC", 14, 15);
+
+                doc.autoTable({
+                    html: '#tablaReportes',
+                    startY: 22,
+                    theme: 'grid',
+                    styles: { fontSize: 8, cellPadding: 2.5 },
+                    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+                });
+
+                doc.save(`Reporte_Creditos_${getMesActual()}.pdf`);
+            } 
+            // Caso 2: Reporte por Cliente (HTML personalizado), disparar impresión CSS limpia sin cabeceras web
+            else {
+                window.print();
+            }
         });
     }
     
     async function cargarReportes() {
         const mes = filtroMes?.value || getMesActual();
         const clienteId = filtroCliente?.value || '';
+        const contenedorVista = document.getElementById('tablaReportesContainer');
         
         if (!contenedorVista) return;
         
@@ -164,17 +216,30 @@ function configurarReportes() {
                 const cotizaciones = await obtenerCotizacionesPorCliente(clienteId);
                 const abonos = await obtenerAbonosPorCliente(clienteId);
                 
-                contenedorVista.outerHTML = `<div id="reporteContainer">${renderizarReporteClienteHTML(nombreCliente, cotizaciones, abonos)}</div>`;
+                // Inyecta la vista formateada del cliente
+                contenedorVista.innerHTML = renderizarReporteClienteHTML(nombreCliente, cotizaciones, abonos);
             } else {
                 const cotizaciones = await obtenerCotizacionesPorMes(mes);
-                const tasaBCV = await obtenerTasaBCV();
-                const nombreMes = filtroMes?.options[filtroMes.selectedIndex]?.text || mes;
+                let tasaBCV = 0;
+                try {
+                    tasaBCV = await obtenerTasaBCV();
+                } catch (e) {
+                    console.warn('No se pudo obtener la tasa BCV:', e);
+                }
                 
-                contenedorVista.outerHTML = `<div id="reporteContainer">${renderizarReporteMensualHTML(nombreMes, cotizaciones, tasaBCV)}</div>`;
+                let nombreMes = mes;
+                if (filtroMes && filtroMes.options && filtroMes.selectedIndex >= 0) {
+                    nombreMes = filtroMes.options[filtroMes.selectedIndex].text;
+                }
+                
+                contenedorVista.innerHTML = renderizarReporteMensualHTML(nombreMes, cotizaciones, tasaBCV);
             }
         } catch (error) {
             console.error('Error al generar vista de reporte:', error);
             showToast('Error al procesar el reporte', 'error');
         }
     }
+
+    // Cargar reporte inicial
+    cargarReportes();
 }
