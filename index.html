@@ -1,368 +1,764 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Control de Créditos - MezulcaGDC</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
     <link rel="stylesheet" href="css/styles.css" />
-</head>
-<body class="bg-gray-50 text-gray-800 antialiased font-sans">
+  </head>
+  <body class="bg-gray-50 text-gray-800 antialiased font-sans">
     <div id="app" class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
-            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-                        <i class="fas fa-chart-line text-white text-xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-gray-800 leading-tight">Control de Créditos</h1>
-                        <span class="text-xs text-gray-500 font-medium">MezulcaGDC</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="tasaBCV" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-semibold" title="Tasa oficial BCV del día">
-                        BCV: consultando...
-                    </span>
-                    <span id="currentMonth" class="text-sm text-gray-600 font-medium hidden sm:inline-block"></span>
-                    <button id="btnLogout" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition flex items-center gap-1.5 font-medium cursor-pointer" aria-label="Cerrar sesión">
-                        <i class="fas fa-sign-out-alt"></i> Salir
-                    </button>
-                </div>
+      <!-- Header -->
+      <header
+        class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100"
+      >
+        <div
+          class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm"
+            >
+              <i class="fas fa-chart-line text-white text-xl"></i>
             </div>
-        </header>
-
-        <!-- Tabs -->
-        <nav class="bg-white border-b border-gray-200 sticky top-[65px] z-30">
-            <div class="max-w-7xl mx-auto px-4">
-                <div class="flex space-x-6">
-                    <button class="tab-btn active py-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="cotizaciones">
-                        <i class="fas fa-file-invoice mr-2"></i>Cotizaciones
-                    </button>
-                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="clientes">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </button>
-                    <button class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer" data-view="reportes">
-                        <i class="fas fa-chart-bar mr-2"></i>Reportes
-                    </button>
-                </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-800 leading-tight">
+                Control de Créditos
+              </h1>
+              <span class="text-xs text-gray-500 font-medium">MezulcaGDC</span>
             </div>
-        </nav>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span
+              id="tasaBCV"
+              class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-semibold"
+              title="Tasa oficial BCV"
+            >
+              BCV: consultando...
+            </span>
+            <button
+              id="btnActualizarTasa"
+              type="button"
+              class="w-7 h-7 flex items-center justify-center text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-full transition cursor-pointer disabled:opacity-50"
+              title="Actualizar tasa BCV"
+              aria-label="Actualizar tasa BCV"
+            >
+              <i id="iconActualizarTasa" class="fas fa-sync-alt text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </header>
 
-        <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
-            <!-- ==================== COTIZACIONES ==================== -->
-            <section id="view-cotizaciones" class="view-section">
-                <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <input type="month" id="mesSelector" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm" aria-label="Seleccionar mes" />
-                        <button id="btnNuevaCotizacion" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm cursor-pointer">
-                            <i class="fas fa-plus"></i> Nueva Cotización
-                        </button>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
-                            <input type="text" id="buscarCliente" placeholder="Buscar cliente o factura..."
-                                   class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-56 sm:w-64 shadow-sm" />
-                        </div>
-                        <button id="btnNuevoCliente" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm shadow-sm cursor-pointer" title="Nuevo Cliente" aria-label="Agregar cliente">
-                            <i class="fas fa-user-plus"></i>
-                        </button>
-                    </div>
-                </div>
+      <!-- Tabs -->
+      <nav class="bg-white border-b border-gray-200 sticky top-[65px] z-30">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="flex space-x-6">
+            <button
+              class="tab-btn active py-3 px-1 border-b-2 border-blue-600 text-blue-600 font-medium text-sm focus:outline-none transition-colors cursor-pointer"
+              data-view="cotizaciones"
+            >
+              <i class="fas fa-file-invoice mr-2"></i>Cotizaciones
+            </button>
+            <button
+              class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer"
+              data-view="clientes"
+            >
+              <i class="fas fa-users mr-2"></i>Clientes
+            </button>
+            <button
+              class="tab-btn py-3 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm focus:outline-none transition-colors cursor-pointer"
+              data-view="reportes"
+            >
+              <i class="fas fa-chart-bar mr-2"></i>Reportes
+            </button>
+          </div>
+        </div>
+      </nav>
 
-                <!-- Consolidado del día -->
-                <div class="grid grid-cols-2 gap-3 mb-4 max-w-md">
-                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium">Cargadas hoy</p>
-                        <p id="resumenHoyCant" class="text-lg font-bold text-gray-800">0</p>
-                    </div>
-                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-                        <p class="text-xs text-gray-500 font-medium">Crédito del día ($)</p>
-                        <p id="resumenHoyUSD" class="text-lg font-bold text-blue-600">$ 0,00</p>
-                    </div>
-                </div>
+      <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
+        <!-- ==================== COTIZACIONES ==================== -->
+        <section id="view-cotizaciones" class="view-section">
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+            <div class="flex items-center gap-3 flex-wrap">
+              <input
+                type="month"
+                id="mesSelector"
+                class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm"
+                aria-label="Seleccionar mes"
+              />
+              <button
+                id="btnNuevaCotizacion"
+                class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm cursor-pointer"
+              >
+                <i class="fas fa-plus"></i> Nueva Cotización
+              </button>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <i
+                  class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"
+                ></i>
+                <input
+                  type="text"
+                  id="buscarCliente"
+                  placeholder="Buscar cliente o factura..."
+                  class="pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm w-56 sm:w-64 shadow-sm"
+                />
+              </div>
+              <button
+                id="btnNuevoCliente"
+                class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm shadow-sm cursor-pointer"
+                title="Nuevo Cliente"
+                aria-label="Agregar cliente"
+              >
+                <i class="fas fa-user-plus"></i>
+              </button>
+            </div>
+          </div>
 
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200" id="tablaCotizaciones">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">No. Factura</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Emisión</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Crédito</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vence</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Deuda Bs</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Deuda $</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Saldo $</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Días Venc.</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Situación</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyCotizaciones" class="bg-white divide-y divide-gray-200 text-sm"></tbody>
-                        <tfoot class="bg-gray-50 font-bold border-t border-gray-200">
-                            <tr id="footerTotales">
-                                <td colspan="5" class="px-4 py-3 text-right text-sm text-gray-700 uppercase tracking-wider">TOTALES:</td>
-                                <td id="totalBs" class="px-4 py-3 text-right text-sm text-gray-900">Bs 0,00</td>
-                                <td id="totalUSD" class="px-4 py-3 text-right text-sm text-gray-900">$ 0,00</td>
-                                <td id="totalSaldo" class="px-4 py-3 text-right text-sm text-gray-900">$ 0,00</td>
-                                <td colspan="3"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </section>
+          <!-- Consolidado del día -->
+          <div class="grid grid-cols-2 gap-3 mb-4 max-w-md">
+            <div
+              class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm"
+            >
+              <p class="text-xs text-gray-500 font-medium">Cargadas hoy</p>
+              <p id="resumenHoyCant" class="text-lg font-bold text-gray-800">
+                0
+              </p>
+            </div>
+            <div
+              class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm"
+            >
+              <p class="text-xs text-gray-500 font-medium">
+                Crédito del día ($)
+              </p>
+              <p id="resumenHoyUSD" class="text-lg font-bold text-blue-600">
+                $ 0,00
+              </p>
+            </div>
+          </div>
 
-            <!-- ==================== CLIENTES ==================== -->
-            <section id="view-clientes" class="view-section hidden">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">
-                            <i class="fas fa-users text-blue-600 mr-2"></i>Gestión de Clientes
-                        </h2>
-                        <button id="btnNuevoClienteDesdeClientes" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer">
-                            <i class="fas fa-plus"></i> Nuevo Cliente
-                        </button>
-                    </div>
-                    <div id="listaClientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                </div>
-            </section>
+          <div
+            class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto"
+          >
+            <table
+              class="min-w-full divide-y divide-gray-200"
+              id="tablaCotizaciones"
+            >
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    No. Factura
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Emisión
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Crédito
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Vence
+                  </th>
+                  <th
+                    class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Cliente
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Deuda Bs
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Deuda $
+                  </th>
+                  <th
+                    class="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Saldo $
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Días Venc.
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Situación
+                  </th>
+                  <th
+                    class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                id="tbodyCotizaciones"
+                class="bg-white divide-y divide-gray-200 text-sm"
+              ></tbody>
+              <tfoot class="bg-gray-50 font-bold border-t border-gray-200">
+                <tr id="footerTotales">
+                  <td
+                    colspan="5"
+                    class="px-4 py-3 text-right text-sm text-gray-700 uppercase tracking-wider"
+                  >
+                    TOTALES:
+                  </td>
+                  <td
+                    id="totalBs"
+                    class="px-4 py-3 text-right text-sm text-gray-900"
+                  >
+                    Bs 0,00
+                  </td>
+                  <td
+                    id="totalUSD"
+                    class="px-4 py-3 text-right text-sm text-gray-900"
+                  >
+                    $ 0,00
+                  </td>
+                  <td
+                    id="totalSaldo"
+                    class="px-4 py-3 text-right text-sm text-gray-900"
+                  >
+                    $ 0,00
+                  </td>
+                  <td colspan="3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
 
-            <!-- ==================== REPORTES ==================== -->
-            <section id="view-reportes" class="view-section hidden">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div class="no-print">
-                        <h2 class="text-xl font-bold text-gray-800 mb-2">
-                            <i class="fas fa-chart-bar text-blue-600 mr-2"></i>Reportes
-                        </h2>
-                        <p class="text-sm text-gray-500 mb-4">
-                            Sin cliente seleccionado: <b>Control de créditos del mes</b>. Con cliente: <b>Resumen del cliente</b>.
-                        </p>
-                        <div class="flex flex-wrap gap-4 mb-6">
-                            <input type="month" id="filtroMesReporte" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 shadow-sm" aria-label="Filtrar por mes" />
-                            <select id="filtroClienteReporte" class="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-[200px] focus:ring-2 focus:ring-blue-500 shadow-sm">
-                                <option value="">Todos los clientes</option>
-                            </select>
-                            <button id="btnExportarPDF" class="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm shadow-sm cursor-pointer">
-                                <i class="fas fa-file-pdf"></i> Imprimir / PDF
-                            </button>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto border border-gray-200 rounded-lg" id="tablaReportesContainer"></div>
-                </div>
-            </section>
-        </main>
+        <!-- ==================== CLIENTES ==================== -->
+        <section id="view-clientes" class="view-section hidden">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-bold text-gray-800">
+                <i class="fas fa-users text-blue-600 mr-2"></i>Gestión de
+                Clientes
+              </h2>
+              <button
+                id="btnNuevoClienteDesdeClientes"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium shadow-sm cursor-pointer"
+              >
+                <i class="fas fa-plus"></i> Nuevo Cliente
+              </button>
+            </div>
+            <div
+              id="listaClientes"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            ></div>
+          </div>
+        </section>
+
+        <!-- ==================== REPORTES ==================== -->
+        <section id="view-reportes" class="view-section hidden">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="no-print">
+              <h2 class="text-xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-chart-bar text-blue-600 mr-2"></i>Reportes
+              </h2>
+              <p class="text-sm text-gray-500 mb-4">
+                Sin cliente seleccionado: <b>Control de créditos del mes</b>.
+                Con cliente: <b>Resumen del cliente</b>.
+              </p>
+              <div class="flex flex-wrap gap-4 mb-6">
+                <input
+                  type="month"
+                  id="filtroMesReporte"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  aria-label="Filtrar por mes"
+                />
+                <select
+                  id="filtroClienteReporte"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-[200px] focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                  <option value="">Todos los clientes</option>
+                </select>
+                <button
+                  id="btnExportarPDF"
+                  class="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm shadow-sm cursor-pointer"
+                >
+                  <i class="fas fa-file-pdf"></i> Imprimir / PDF
+                </button>
+              </div>
+            </div>
+            <div
+              class="overflow-x-auto border border-gray-200 rounded-lg"
+              id="tablaReportesContainer"
+            ></div>
+          </div>
+        </section>
+      </main>
     </div>
 
     <!-- ==================== MODALES ==================== -->
 
     <!-- Cliente -->
-    <div id="modalCliente" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="fas fa-user-plus text-green-600 mr-2"></i>Nuevo Cliente
-                </h3>
-                <button type="button" class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="formCliente" autocomplete="off">
-                <div class="mb-3">
-                    <label for="clienteNombre" class="block text-sm font-medium text-gray-700 mb-1">Nombre Empresa *</label>
-                    <input type="text" id="clienteNombre" placeholder="Ej: Belmeny Group"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required />
-                </div>
-                <div class="mb-3">
-                    <label for="clienteTelefono" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                    <input type="tel" id="clienteTelefono" placeholder="0412-1234567"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" />
-                </div>
-                <div class="mb-4">
-                    <label for="clienteDireccion" class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                    <input type="text" id="clienteDireccion" placeholder="Dirección del cliente"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" />
-                </div>
-                <div class="flex justify-end gap-3 border-t pt-4">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                </div>
-            </form>
+    <div
+      id="modalCliente"
+      class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    >
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+          <h3 class="text-lg font-bold text-gray-800">
+            <i class="fas fa-user-plus text-green-600 mr-2"></i>Nuevo Cliente
+          </h3>
+          <button
+            type="button"
+            class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer"
+            aria-label="Cerrar modal"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
         </div>
+        <form id="formCliente" autocomplete="off">
+          <div class="mb-3">
+            <label
+              for="clienteNombre"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Nombre Empresa *</label
+            >
+            <input
+              type="text"
+              id="clienteNombre"
+              placeholder="Ej: Belmeny Group"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label
+              for="clienteTelefono"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Teléfono</label
+            >
+            <input
+              type="tel"
+              id="clienteTelefono"
+              placeholder="0412-1234567"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div class="mb-4">
+            <label
+              for="clienteDireccion"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Dirección</label
+            >
+            <input
+              type="text"
+              id="clienteDireccion"
+              placeholder="Dirección del cliente"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div class="flex justify-end gap-3 border-t pt-4">
+            <button
+              type="button"
+              class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer"
+            >
+              <i class="fas fa-save"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Cotización -->
-    <div id="modalCotizacion" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="fas fa-file-invoice text-blue-600 mr-2"></i>Nueva Cotización
-                </h3>
-                <button type="button" class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="formCotizacion" autocomplete="off">
-                <div class="mb-3">
-                    <label for="cotNumeroFactura" class="block text-sm font-medium text-gray-700 mb-1">Número de Factura *</label>
-                    <input type="text" id="cotNumeroFactura" placeholder="C26-022527"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm" required />
-                </div>
-                <div class="mb-3">
-                    <label for="cotCliente" class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-                    <select id="cotCliente" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
-                        <option value="">Seleccionar cliente</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="cotFechaEmision" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Emisión *</label>
-                    <input type="date" id="cotFechaEmision"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required />
-                </div>
-                <div class="mb-3">
-                    <label for="cotMontoUSD" class="block text-sm font-medium text-gray-700 mb-1">Monto Deuda ($) *</label>
-                    <input type="number" id="cotMontoUSD" placeholder="0.00" step="0.01" min="0.01"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required />
-                </div>
-                <div class="mb-3">
-                    <label for="cotMontoBs" class="block text-sm font-medium text-gray-700 mb-1">
-                        Monto Deuda (Bs) <span class="text-gray-400 font-normal">(opcional, si se deja vacío se calcula con la tasa BCV)</span>
-                    </label>
-                    <input type="number" id="cotMontoBs" placeholder="0.00" step="0.01" min="0"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" />
-                </div>
-                <div class="mb-3">
-                    <label for="cotObservaciones" class="block text-sm font-medium text-gray-700 mb-1">Observación</label>
-                    <textarea id="cotObservaciones" rows="2" placeholder="Ej: Despacho manual, libro, notas..."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"></textarea>
-                </div>
-                <div class="mb-4 text-sm text-gray-600 bg-blue-50/60 border border-blue-100 p-3 rounded-lg">
-                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                    Crédito de <b>5 días</b>. Vence: <span id="cotFechaVencimientoPreview" class="font-semibold text-blue-900">-</span>
-                </div>
-                <div class="flex justify-end gap-3 border-t pt-4">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <i class="fas fa-save"></i> Guardar
-                    </button>
-                </div>
-            </form>
+    <div
+      id="modalCotizacion"
+      class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    >
+      <div
+        class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+          <h3 class="text-lg font-bold text-gray-800">
+            <i class="fas fa-file-invoice text-blue-600 mr-2"></i>Nueva
+            Cotización
+          </h3>
+          <button
+            type="button"
+            class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer"
+            aria-label="Cerrar modal"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
         </div>
+        <form id="formCotizacion" autocomplete="off">
+          <div class="mb-3">
+            <label
+              for="cotNumeroFactura"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Número de Factura *</label
+            >
+            <input
+              type="text"
+              id="cotNumeroFactura"
+              placeholder="C26-022527"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label
+              for="cotCliente"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Cliente *</label
+            >
+            <select
+              id="cotCliente"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            >
+              <option value="">Seleccionar cliente</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label
+              for="cotFechaEmision"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Fecha de Emisión *</label
+            >
+            <input
+              type="date"
+              id="cotFechaEmision"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label
+              for="cotMontoUSD"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Monto Deuda ($) *</label
+            >
+            <input
+              type="number"
+              id="cotMontoUSD"
+              placeholder="0.00"
+              step="0.01"
+              min="0.01"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label
+              for="cotMontoBs"
+              class="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Monto Deuda (Bs)
+              <span class="text-gray-400 font-normal"
+                >(opcional, si se deja vacío se calcula con la tasa BCV)</span
+              >
+            </label>
+            <input
+              type="number"
+              id="cotMontoBs"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div class="mb-3">
+            <label
+              for="cotObservaciones"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Observación</label
+            >
+            <textarea
+              id="cotObservaciones"
+              rows="2"
+              placeholder="Ej: Despacho manual, libro, notas..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            ></textarea>
+          </div>
+          <div
+            class="mb-4 text-sm text-gray-600 bg-blue-50/60 border border-blue-100 p-3 rounded-lg"
+          >
+            <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+            Crédito de <b>5 días</b>. Vence:
+            <span
+              id="cotFechaVencimientoPreview"
+              class="font-semibold text-blue-900"
+              >-</span
+            >
+          </div>
+          <div class="flex justify-end gap-3 border-t pt-4">
+            <button
+              type="button"
+              class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer"
+            >
+              <i class="fas fa-save"></i> Guardar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Abono -->
-    <div id="modalAbono" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h3 class="text-lg font-bold text-gray-800">
-                    <i class="fas fa-hand-holding-usd text-green-600 mr-2"></i>Registrar Abono
-                </h3>
-                <button type="button" class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="Cerrar modal">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <form id="formAbono" autocomplete="off">
-                <div class="mb-3">
-                    <label for="abonoCliente" class="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
-                    <select id="abonoCliente" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
-                        <option value="">Seleccionar cliente</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="abonoCotizacion" class="block text-sm font-medium text-gray-700 mb-1">Cotización *</label>
-                    <select id="abonoCotizacion" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
-                        <option value="">Primero selecciona un cliente</option>
-                    </select>
-                    <div id="infoSaldo" class="mt-2 text-sm bg-gray-50 border border-gray-200 p-2.5 rounded-lg hidden">
-                        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                        Saldo pendiente: <span id="saldoPendienteDisplay" class="font-bold text-blue-600">$ 0,00</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label for="abonoFecha" class="block text-sm font-medium text-gray-700 mb-1">Fecha del pago *</label>
-                        <input type="date" id="abonoFecha" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required />
-                    </div>
-                    <div>
-                        <label for="abonoMetodo" class="block text-sm font-medium text-gray-700 mb-1">Método de Pago *</label>
-                        <select id="abonoMetodo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
-                            <option value="">Seleccionar</option>
-                            <option value="Transferencia Nacional">Transferencia Nacional</option>
-                            <option value="Pago Móvil">Pago Móvil</option>
-                            <option value="Efectivo Bs">Efectivo (Bs)</option>
-                            <option value="Zelle">Zelle</option>
-                            <option value="Efectivo $">Efectivo ($)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label for="abonoMontoBs" class="block text-xs font-semibold text-gray-700 mb-1">Monto en Bs <span class="text-gray-400 font-normal">(métodos en Bs)</span></label>
-                        <input type="number" id="abonoMontoBs" placeholder="0.00" step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
-                    </div>
-                    <div>
-                        <label for="abonoTasaBCV" class="block text-xs font-semibold text-gray-700 mb-1">Tasa BCV (Bs/$)</label>
-                        <input type="number" id="abonoTasaBCV" placeholder="0.00" step="any" min="0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-400" />
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <label for="abonoMonto" class="block text-sm font-medium text-gray-700 mb-1">Monto a abonar ($) *</label>
-                    <div class="flex gap-2">
-                        <input type="number" id="abonoMonto" placeholder="0.00" step="0.01" min="0.01"
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-bold text-gray-800 text-sm read-only:bg-gray-100" />
-                        <button type="button" id="btnPagoTotal" class="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 text-xs font-semibold cursor-pointer whitespace-nowrap">
-                            Pago total
-                        </button>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">Con métodos en Bs, el monto en $ se calcula solo (Bs ÷ tasa).</p>
-                </div>
-
-                <div class="flex justify-end gap-3 border-t pt-4">
-                    <button type="button" class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <i class="fas fa-save"></i> Registrar Abono
-                    </button>
-                </div>
-            </form>
+    <div
+      id="modalAbono"
+      class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+    >
+      <div
+        class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+          <h3 class="text-lg font-bold text-gray-800">
+            <i class="fas fa-hand-holding-usd text-green-600 mr-2"></i>Registrar
+            Abono
+          </h3>
+          <button
+            type="button"
+            class="btn-cerrar-modal text-gray-400 hover:text-gray-600 cursor-pointer"
+            aria-label="Cerrar modal"
+          >
+            <i class="fas fa-times text-xl"></i>
+          </button>
         </div>
+        <form id="formAbono" autocomplete="off">
+          <div class="mb-3">
+            <label
+              for="abonoCliente"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Cliente *</label
+            >
+            <select
+              id="abonoCliente"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            >
+              <option value="">Seleccionar cliente</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label
+              for="abonoCotizacion"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Cotización *</label
+            >
+            <select
+              id="abonoCotizacion"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              required
+            >
+              <option value="">Primero selecciona un cliente</option>
+            </select>
+            <div
+              id="infoSaldo"
+              class="mt-2 text-sm bg-gray-50 border border-gray-200 p-2.5 rounded-lg hidden"
+            >
+              <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+              Saldo pendiente:
+              <span id="saldoPendienteDisplay" class="font-bold text-blue-600"
+                >$ 0,00</span
+              >
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label
+                for="abonoFecha"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Fecha del pago *</label
+              >
+              <input
+                type="date"
+                id="abonoFecha"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label
+                for="abonoMetodo"
+                class="block text-sm font-medium text-gray-700 mb-1"
+                >Método de Pago *</label
+              >
+              <select
+                id="abonoMetodo"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                required
+              >
+                <option value="">Seleccionar</option>
+                <option value="Transferencia Nacional">
+                  Transferencia Nacional
+                </option>
+                <option value="Pago Móvil">Pago Móvil</option>
+                <option value="Efectivo Bs">Efectivo (Bs)</option>
+                <option value="Zelle">Zelle</option>
+                <option value="Efectivo $">Efectivo ($)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label
+                for="abonoMontoBs"
+                class="block text-xs font-semibold text-gray-700 mb-1"
+                >Monto en Bs
+                <span class="text-gray-400 font-normal"
+                  >(métodos en Bs)</span
+                ></label
+              >
+              <input
+                type="number"
+                id="abonoMontoBs"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-400"
+              />
+            </div>
+            <div>
+              <label
+                for="abonoTasaBCV"
+                class="block text-xs font-semibold text-gray-700 mb-1"
+                >Tasa BCV (Bs/$)</label
+              >
+              <input
+                type="number"
+                id="abonoTasaBCV"
+                placeholder="0.00"
+                step="any"
+                min="0"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-400"
+              />
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label
+              for="abonoMonto"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Monto a abonar ($) *</label
+            >
+            <div class="flex gap-2">
+              <input
+                type="number"
+                id="abonoMonto"
+                placeholder="0.00"
+                step="0.01"
+                min="0.01"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-bold text-gray-800 text-sm read-only:bg-gray-100"
+              />
+              <button
+                type="button"
+                id="btnPagoTotal"
+                class="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 text-xs font-semibold cursor-pointer whitespace-nowrap"
+              >
+                Pago total
+              </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+              Con métodos en Bs, el monto en $ se calcula solo (Bs ÷ tasa).
+            </p>
+          </div>
+
+          <div class="flex justify-end gap-3 border-t pt-4">
+            <button
+              type="button"
+              class="btn-cancelar px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium cursor-pointer"
+            >
+              <i class="fas fa-save"></i> Registrar Abono
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Confirmación -->
-    <div id="modalConfirmacion" class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-200">
-        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
-            <div id="confirmIconContainer" class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
-                <i id="confirmIcon" class="fas fa-exclamation-triangle text-xl"></i>
-            </div>
-            <h3 id="confirmTitle" class="text-lg font-bold text-gray-800 mb-2">¿Estás seguro?</h3>
-            <p id="confirmMessage" class="text-sm text-gray-600 mb-6 leading-relaxed"></p>
-            <div class="flex justify-center gap-3">
-                <button type="button" id="btnConfirmCancelar" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer">Cancelar</button>
-                <button type="button" id="btnConfirmAceptar" class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium shadow-sm cursor-pointer">Confirmar</button>
-            </div>
+    <div
+      id="modalConfirmacion"
+      class="modal hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-200"
+    >
+      <div
+        class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center"
+      >
+        <div
+          id="confirmIconContainer"
+          class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4"
+        >
+          <i id="confirmIcon" class="fas fa-exclamation-triangle text-xl"></i>
         </div>
+        <h3 id="confirmTitle" class="text-lg font-bold text-gray-800 mb-2">
+          ¿Estás seguro?
+        </h3>
+        <p
+          id="confirmMessage"
+          class="text-sm text-gray-600 mb-6 leading-relaxed"
+        ></p>
+        <div class="flex justify-center gap-3">
+          <button
+            type="button"
+            id="btnConfirmCancelar"
+            class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            id="btnConfirmAceptar"
+            class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium shadow-sm cursor-pointer"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
     </div>
 
     <script type="importmap">
-        {
-            "imports": {
-                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js",
-                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js",
-                "firebase/storage": "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js"
-            }
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js",
+          "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js",
+          "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js",
+          "firebase/storage": "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js"
         }
+      }
     </script>
     <script type="module" src="./js/app.js"></script>
-</body>
+  </body>
 </html>

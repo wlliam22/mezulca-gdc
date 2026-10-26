@@ -1,6 +1,19 @@
-import { getHoy } from '../utils/dateUtils.js';
+import { aISODia } from '../utils/dateUtils.js';
 
-const CLAVE_CACHE = 'bcv_tasa_cache';
+const CLAVE_CACHE = 'bcv_tasa_cache_v3';
+// La tasa se renueva a las 7:00 am y a las 4:00 pm (cuando el BCV publica la del día siguiente)
+const CORTES = [7, 16];
+
+function cicloActual() {
+    const ahora = new Date();
+    const h = ahora.getHours();
+    const corte = [...CORTES].reverse().find(c => h >= c);
+    if (corte === undefined) {
+        ahora.setDate(ahora.getDate() - 1);
+        return `${aISODia(ahora)}-${CORTES[CORTES.length - 1]}`;
+    }
+    return `${aISODia(ahora)}-${corte}`;
+}
 
 function leerCache() {
     try {
@@ -10,51 +23,70 @@ function leerCache() {
     }
 }
 
-function guardarCache(tasa) {
+function guardarCache(info) {
     try {
-        localStorage.setItem(CLAVE_CACHE, JSON.stringify({ fecha: getHoy(), tasa }));
+        localStorage.setItem(CLAVE_CACHE, JSON.stringify({ ...info, ciclo: cicloActual() }));
     } catch { /* sin storage, no pasa nada */ }
 }
 
-async function consultarAPI() {
-    // API principal
-    try {
-        const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-        if (!res.ok) throw new Error('Respuesta no válida');
-        const data = await res.json();
-        const tasa = parseFloat(data.promedio ?? data.monto);
-        if (tasa > 0) return tasa;
-    } catch (error) {
-        console.warn('⚠️ API principal BCV no disponible:', error);
-    }
+/* ------------------------- Fuentes de la tasa ------------------------- */
+// 1) Producción (Vercel): nuestra propia función, sin CORS
+async function desdeNuestroServidor() {
+    const res = await fetch('/api/tasa', { cache: 'no-store' });
+    const tipo = res.headers.get('content-type') || '';
+    if (!res.ok || !tipo.includes('application/json')) throw new Error('/api/tasa no disponible');
+    const data = await res.json();
+    if (!(data.tasa > 0)) throw new Error('Tasa inválida');
+    return data;
+}
 
-    // API de respaldo (mejor esfuerzo)
-    try {
-        const res = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv');
-        const data = await res.json();
-        const tasa = parseFloat(
-            data?.monitors?.usd?.price ?? data?.monedas?.usd?.promedio
-        );
-        if (tasa > 0) return tasa;
-    } catch (error) {
-        console.warn('⚠️ API de respaldo BCV no disponible:', error);
+// 2) Local (Live Server no tiene /api): consulta directa a dolarapi
+async function desdeDolarApi() {
+    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Respuesta no válida');
+    const data = await res.json();
+    const tasa = parseFloat(data.promedio ?? data.venta ?? data.monto);
+    if (!(tasa > 0)) throw new Error('Tasa inválida');
+    return { tasa, fechaFuente: data.fechaActualizacion || null, fuente: 'dolarapi' };
+}
+
+async function consultarAPIs() {
+    for (const fuente of [desdeNuestroServidor, desdeDolarApi]) {
+        try {
+            return await fuente();
+        } catch (error) {
+            console.warn(`⚠️ ${fuente.name} falló:`, error.message);
+        }
     }
-    return 0;
+    return null;
 }
 
 /**
- * Devuelve la tasa BCV (Bs por $) del día.
- * Se consulta una vez al día; si no hay conexión usa la última guardada; si no hay ninguna devuelve 0
- * (el usuario puede escribirla a mano en el modal de abono).
+ * Devuelve { tasa, fechaFuente, consultadoAt, fuente, ok }.
+ * - Sin `force`: usa el caché mientras sea del ciclo actual (cortes 7am y 4pm).
+ * - Con `force`: consulta de nuevo ya (botón de actualizar).
+ * - Si la consulta falla, devuelve la última tasa guardada con ok:false.
  */
-export async function obtenerTasaBCV() {
+export async function obtenerInfoTasaBCV({ force = false } = {}) {
     const cache = leerCache();
-    if (cache && cache.fecha === getHoy() && cache.tasa > 0) return cache.tasa;
 
-    const tasa = await consultarAPI();
-    if (tasa > 0) {
-        guardarCache(tasa);
-        return tasa;
+    if (!force && cache && cache.ciclo === cicloActual() && cache.tasa > 0) {
+        return { ...cache, ok: true };
     }
-    return cache?.tasa || 0;
+
+    const nueva = await consultarAPIs();
+    if (nueva) {
+        const info = { ...nueva, consultadoAt: new Date().toISOString() };
+        guardarCache(info);
+        return { ...info, ok: true };
+    }
+
+    if (cache?.tasa > 0) return { ...cache, ok: false };
+    return { tasa: 0, fechaFuente: null, consultadoAt: null, fuente: null, ok: false };
+}
+
+// Solo el número (lo usan cotizaciones y abonos)
+export async function obtenerTasaBCV() {
+    const info = await obtenerInfoTasaBCV();
+    return info.tasa || 0;
 }
