@@ -89,7 +89,7 @@ let cotizacionesMes = [];
       if (!(info.tasa > 0)) {
         el.textContent = "BCV: no disponible (ingrésala manualmente)";
         el.className = CLASES_TASA.error;
-        el.title = "No se pudo consultar la tasa";
+        el.title = "No se pudo consultar la tasa en ninguna fuente";
         if (force) showToast("No se pudo obtener la tasa BCV", "error");
         return;
       }
@@ -106,6 +106,7 @@ let cotizacionesMes = [];
         (fechaOk ? ` (act. ${formatFechaCorta(info.fechaFuente)})` : "");
       el.className = !info.ok || vieja ? CLASES_TASA.aviso : CLASES_TASA.ok;
       el.title = [
+        info.fuente ? `Fuente: ${info.fuente}` : "",
         fechaOk
           ? `Tasa actualizada: ${fuente.toLocaleString("es-VE")}`
           : "La fuente no indica fecha de actualización",
@@ -130,8 +131,9 @@ let cotizacionesMes = [];
       }
     } catch (error) {
       console.error("Error al mostrar la tasa:", error);
-      el.textContent = "BCV: no disponible (ingrésala manualmente)";
+      el.textContent = "BCV: error (ver consola)";
       el.className = CLASES_TASA.error;
+      el.title = String(error?.message || error);
     } finally {
       icono?.classList.remove("fa-spin");
       if (btn) btn.disabled = false;
@@ -142,7 +144,7 @@ let cotizacionesMes = [];
     .getElementById("btnActualizarTasa")
     ?.addEventListener("click", () => mostrarTasa(true));
 
-  // Si la pestaña queda abierta, a las 7:00 am se renueva sola (revisa cada 30 min)
+  // Si la pestaña queda abierta, se renueva sola en los cortes de las 7am y 4pm (revisa cada 30 min)
   setInterval(() => mostrarTasa(false), 30 * 60 * 1000);
 
   /* ---------- Clientes ---------- */

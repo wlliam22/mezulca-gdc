@@ -12,7 +12,6 @@ async function desdeJustCarlux() {
     };
 }
 
-// Respaldo
 async function desdeDolarApi() {
     const r = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
     if (!r.ok) throw new Error('dolarapi ' + r.status);
@@ -23,15 +22,21 @@ async function desdeDolarApi() {
 }
 
 module.exports = async (req, res) => {
-    for (const fuente of [desdeJustCarlux, desdeDolarApi]) {
+    const fuentes = [
+        { nombre: 'justcarlux', consultar: desdeJustCarlux },
+        { nombre: 'dolarapi', consultar: desdeDolarApi }
+    ];
+
+    for (const fuente of fuentes) {
         try {
-            const data = await fuente();
+            const data = await fuente.consultar();
             res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
             return res.status(200).json(data);
         } catch (error) {
-            console.warn(`${fuente.name} falló:`, error.message);
+            console.warn(`${fuente.nombre} falló:`, error.message);
         }
     }
+
     res.setHeader('Cache-Control', 'no-store');
     return res.status(502).json({ error: 'No se pudo obtener la tasa' });
 };

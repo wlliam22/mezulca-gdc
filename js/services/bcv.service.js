@@ -1,6 +1,6 @@
 import { aISODia } from '../utils/dateUtils.js';
 
-const CLAVE_CACHE = 'bcv_tasa_cache_v3';
+const CLAVE_CACHE = 'bcv_tasa_cache_v4';
 // La tasa se renueva a las 7:00 am y a las 4:00 pm (cuando el BCV publica la del día siguiente)
 const CORTES = [7, 16];
 
@@ -30,7 +30,8 @@ function guardarCache(info) {
 }
 
 /* ------------------------- Fuentes de la tasa ------------------------- */
-// 1) Producción (Vercel): nuestra propia función, sin CORS
+
+// 1) Nuestra función en Vercel (producción): sin problemas de CORS
 async function desdeNuestroServidor() {
     const res = await fetch('/api/tasa', { cache: 'no-store' });
     const tipo = res.headers.get('content-type') || '';
@@ -40,7 +41,7 @@ async function desdeNuestroServidor() {
     return data;
 }
 
-// 2) Local (Live Server no tiene /api): consulta directa a dolarapi
+// 2) API directa del BCV (útil en local, donde no existe /api)
 async function desdeJustCarlux() {
     const res = await fetch('https://bcv.justcarlux.dev/api/v1/rates', { cache: 'no-store' });
     if (!res.ok) throw new Error('Respuesta no válida');
@@ -54,14 +55,35 @@ async function desdeJustCarlux() {
     };
 }
 
-// 3) Respaldo: dolarapi
+// 3) Respaldo
 async function desdeDolarApi() {
     const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
     if (!res.ok) throw new Error('Respuesta no válida');
     const data = await res.json();
     const tasa = parseFloat(data.promedio ?? data.venta ?? data.monto);
     if (!(tasa > 0)) throw new Error('Tasa inválida');
-    return { tasa, fechaFuente: data.fechaActualizacion || null, fuente: 'dolarapi (respaldo)' };
+    return {
+        tasa,
+        fechaFuente: data.fechaActualizacion || null,
+        fuente: 'dolarapi (respaldo)'
+    };
+}
+
+const FUENTES = [
+    { nombre: 'servidor', consultar: desdeNuestroServidor },
+    { nombre: 'justcarlux', consultar: desdeJustCarlux },
+    { nombre: 'dolarapi', consultar: desdeDolarApi }
+];
+
+async function consultarAPIs() {
+    for (const fuente of FUENTES) {
+        try {
+            return await fuente.consultar();
+        } catch (error) {
+            console.warn(`⚠️ Fuente "${fuente.nombre}" falló:`, error.message);
+        }
+    }
+    return null;
 }
 
 /**
