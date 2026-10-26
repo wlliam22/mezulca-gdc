@@ -1,110 +1,29 @@
-/* Estilos para modales y transiciones */
-.modal {
-    transition: opacity 0.3s ease;
-}
-
-.modal:not(.hidden) {
-    display: flex !important;
-}
-
-/* Animación para filas de tabla */
-#tbodyCotizaciones tr {
-    transition: background-color 0.2s ease;
-}
-
-#tbodyCotizaciones tr:hover {
-    background-color: #f9fafb;
-}
-
-/* Badges de situación */
-.badge-vigente {
-    @apply px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium;
-}
-
-.badge-vencido {
-    @apply px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium;
-}
-
-.badge-pagado {
-    @apply px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium;
-}
-
-/* Estilos para las tarjetas de clientes */
-.cliente-card {
-    @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow;
-}
-
-/* Scroll suave para tablas */
-.table-container {
-    overflow-x: auto;
-    max-height: 600px;
-    overflow-y: auto;
-}
-
-/* Animaciones */
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-.animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-}
-
 /* Modales */
 .modal {
     display: none;
-    backdrop-filter: blur(2px);
+    transition: opacity 0.3s ease;
 }
-
 .modal:not(.hidden) {
     display: flex !important;
 }
 
-/* Scroll suave para tablas */
+/* Filas de tabla */
 #tbodyCotizaciones tr {
     transition: background-color 0.15s ease;
 }
-
 #tbodyCotizaciones tr:hover {
     background-color: #f9fafb;
 }
 
-/* Badges de situación */
-.badge-vigente {
-    @apply px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium;
-}
-
-.badge-vencido {
-    @apply px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium;
-}
-
-.badge-pagado {
-    @apply px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium;
-}
-
-/* Tarjetas de clientes */
-.cliente-card {
-    @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow;
-}
-
-/* Estilos para el sticky header */
 .sticky {
     position: sticky;
     z-index: 30;
 }
 
-/* Scroll en modales */
-.modal .max-h-\[90vh\] {
-    max-height: 90vh;
-}
-
-/* Estilo para inputs tipo file (opcional) */
 input[type="file"] {
     cursor: pointer;
 }
 
-/* Mejoras para móviles */
 @media (max-width: 640px) {
     .tab-btn {
         font-size: 0.75rem;
@@ -116,53 +35,39 @@ input[type="file"] {
 }
 
 /* ==========================================
-   ESTILOS EXCLUSIVOS PARA IMPRESIÓN (PRINT)
+   IMPRESIÓN / EXPORTAR A PDF (solo Reportes)
    ========================================== */
 @media print {
-    /* Ocultar interfaz y navegación */
-    header, 
-    nav, 
+    header,
+    nav,
     .modal,
+    .no-print,
+    #toast-container,
     #view-cotizaciones,
     #view-clientes {
         display: none !important;
     }
 
-    /* Ocultar controles de filtrado y encabezado de la sección reportes */
-    #view-reportes h2,
-    #view-reportes .flex {
-        display: none !important;
+    body {
+        background: #fff !important;
     }
 
-    /* Resetear contenedor principal para evitar la hoja en blanco */
-    html, body, #app, main, #view-reportes {
-        background: transparent !important;
-        margin: 0 !important;
+    main {
         padding: 0 !important;
-        min-height: auto !important;
-        width: 100% !important;
-        overflow: visible !important;
+        max-width: none !important;
     }
 
-    /* Posicionar la tabla al tope de la primera página */
-    #tablaReportesContainer {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
+    #view-reportes > div {
         border: none !important;
         box-shadow: none !important;
-        margin: 0 !important;
         padding: 0 !important;
+    }
+
+    #tablaReportesContainer {
+        border: none !important;
         overflow: visible !important;
     }
 
-    #tablaReportes {
-        width: 100% !important;
-        border-collapse: collapse !important;
-    }
-
-    /* Configuración de hoja horizontal sin márgenes excesivos */
     @page {
         size: letter landscape;
         margin: 10mm;

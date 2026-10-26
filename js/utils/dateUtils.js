@@ -1,47 +1,73 @@
-// Formatear fecha a DD-MMM (ej: 8-abr)
-export function formatFechaCorta(timestamp) {
-    if (!timestamp) return '-';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    return `${date.getDate()}-${meses[date.getMonth()]}`;
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+               'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+const pad = (n) => String(n).padStart(2, '0');
+
+/**
+ * Convierte cualquier valor de fecha a Date en HORA LOCAL.
+ * Acepta: Timestamp de Firestore, Date, 'YYYY-MM-DD' (se interpreta local, no UTC) o ISO string.
+ */
+export function aFecha(valor) {
+    if (!valor) return null;
+    if (typeof valor.toDate === 'function') return valor.toDate();
+    if (valor instanceof Date) return new Date(valor.getTime());
+    if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+        const [y, m, d] = valor.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+    const d = new Date(valor);
+    return isNaN(d.getTime()) ? null : d;
 }
 
-// Formatear fecha a YYYY-MM-DD
-export function formatFechaCompleta(timestamp) {
-    if (!timestamp) return '-';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toISOString().split('T')[0];
+// Date -> 'YYYY-MM-DD' en hora local
+export function aISODia(date) {
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-// Calcular días vencidos
+export function getHoy() {
+    return aISODia(new Date());
+}
+
+// Mes actual 'YYYY-MM'
+export function getMesActual() {
+    return getHoy().slice(0, 7);
+}
+
+// 'YYYY-MM-DD' + N días -> 'YYYY-MM-DD'
+export function sumarDias(fechaStr, dias) {
+    const d = aFecha(fechaStr);
+    d.setDate(d.getDate() + dias);
+    return aISODia(d);
+}
+
+// 8-abr
+export function formatFechaCorta(valor) {
+    const d = aFecha(valor);
+    if (!d) return '-';
+    return `${d.getDate()}-${MESES_CORTOS[d.getMonth()]}`;
+}
+
+// YYYY-MM-DD
+export function formatFechaCompleta(valor) {
+    const d = aFecha(valor);
+    return d ? aISODia(d) : '-';
+}
+
+// Días transcurridos desde el vencimiento (0 si no ha vencido)
 export function calcularDiasVencidos(fechaVencimiento) {
-    if (!fechaVencimiento) return 0;
+    const venc = aFecha(fechaVencimiento);
+    if (!venc) return 0;
+    venc.setHours(0, 0, 0, 0);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    const venc = fechaVencimiento.toDate ? fechaVencimiento.toDate() : new Date(fechaVencimiento);
-    venc.setHours(0, 0, 0, 0);
-    const diffTime = hoy - venc;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
+    const dias = Math.round((hoy - venc) / 86400000);
+    return dias > 0 ? dias : 0;
 }
 
-// Obtener mes actual en formato YYYY-MM
-export function getMesActual() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-// Calcular fecha de vencimiento
-export function calcularFechaVencimiento(fechaEmision, diasCredito) {
-    const date = fechaEmision.toDate ? fechaEmision.toDate() : new Date(fechaEmision);
-    date.setDate(date.getDate() + diasCredito);
-    return date;
-}
-
-// Obtener nombre del mes en español
+// '2026-04' -> 'Abril 2026'
 export function getNombreMes(mes) {
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const [year, month] = mes.split('-');
-    return `${meses[parseInt(month) - 1]} ${year}`;
+    const [year, month] = (mes || '').split('-');
+    if (!year || !month) return mes || '';
+    return `${MESES[parseInt(month, 10) - 1]} ${year}`;
 }

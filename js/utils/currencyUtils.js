@@ -1,11 +1,22 @@
-// Formatear a USD
-export function formatUSD(monto) {
-    if (monto === undefined || monto === null || isNaN(monto)) return '$ 0,00';
-    return `$ ${monto.toFixed(2).replace('.', ',')}`;
+const formato = new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+});
+
+export function round2(n) {
+    return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 }
 
-// Formatear a Bs
+// $ 1.311,54
+export function formatUSD(monto) {
+    const n = Number(monto);
+    if (!isFinite(n)) return '$ 0,00';
+    return `$ ${formato.format(n)}`;
+}
+
+// Bs 113.702,14
 export function formatBs(monto) {
-    if (monto === undefined || monto === null || isNaN(monto) || monto === 0) return 'Bs 0,00';
-    return `Bs ${monto.toFixed(2).replace('.', ',')}`;
+    const n = Number(monto);
+    if (!isFinite(n)) return 'Bs 0,00';
+    return `Bs ${formato.format(n)}`;
 }

@@ -1,43 +1,41 @@
 import { db } from '../config/firebase-config.js';
-import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    query, 
-    where, 
-    onSnapshot, 
-    serverTimestamp 
+import {
+    collection,
+    addDoc,
+    getDocs,
+    query,
+    where,
+    onSnapshot,
+    doc,
+    updateDoc,
+    serverTimestamp
 } from 'firebase/firestore';
-import { calcularDiasVencidos } from '../utils/dateUtils.js';
+import { calcularDiasVencidos, getHoy, getMesActual, sumarDias } from '../utils/dateUtils.js';
+import { round2 } from '../utils/currencyUtils.js';
 import { obtenerTasaBCV } from './bcv.service.js';
 
 const COLLECTION_NAME = "cotizaciones";
+export const DIAS_CREDITO = 5;
 
 export function calcularEstatus(cot) {
-    const deuda = Number(cot.montoDeudaUSD) || 0;
-    const pagado = Number(cot.montoPagadoUSD) || 0;
-    const saldo = deuda - pagado;
-
+    const saldo = round2((Number(cot.montoDeudaUSD) || 0) - (Number(cot.montoPagadoUSD) || 0));
     if (saldo <= 0) return "Pagado";
+    return calcularDiasVencidos(cot.fechaVencimiento) > 0 ? "Vencido" : "Vigente";
+}
 
-    const fechaVenc = cot.fechaVencimiento?.toDate 
-        ? cot.fechaVencimiento.toDate() 
-        : new Date(cot.fechaVencimiento);
-        
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    return hoy > fechaVenc ? "Vencido" : "Vigente";
+function createdAtMs(c) {
+    const t = c.createdAt;
+    if (!t) return Date.now(); // escritura local pendiente: va de primera
+    if (typeof t.toMillis === 'function') return t.toMillis();
+    return new Date(t).getTime() || 0;
 }
 
 function procesarCotizacionDoc(docSnap) {
     const data = docSnap.data();
     const deuda = Number(data.montoDeudaUSD) || 0;
     const pagado = Number(data.montoPagadoUSD) || 0;
-    const saldo = Math.max(0, deuda - pagado);
-    
-    const estatus = saldo <= 0 ? "Pagado" : calcularEstatus(data);
-    const diasVencidos = estatus === "Vencido" ? calcularDiasVencidos(data.fechaVencimiento) : 0;
+    const saldo = Math.max(0, round2(deuda - pagado));
+    const estatus = calcularEstatus(data);
 
     return {
         id: docSnap.id,
@@ -45,49 +43,66 @@ function procesarCotizacionDoc(docSnap) {
         observaciones: data.observaciones || '',
         tasaBCV: data.tasaBCV || 0,
         saldoPendiente: saldo,
-        estatus: estatus,
-        diasVencidos: diasVencidos
+        estatus,
+        diasVencidos: estatus === "Vencido" ? calcularDiasVencidos(data.fechaVencimiento) : 0
     };
 }
 
-export async function crearCotizacion(cotizacionData) {
-    try {
-        const fechaEmisionObj = new Date(cotizacionData.fechaEmision);
-        const dias = Number(cotizacionData.diasCredito) || 5;
-        
-        const fechaVencimientoObj = new Date(fechaEmisionObj);
-        fechaVencimientoObj.setDate(fechaVencimientoObj.getDate() + dias);
+/**
+ * Crea una cotización.
+ * - fechaEmision: 'YYYY-MM-DD'
+ * - mesCorte = mes en que se CARGA (no el de emisión)
+ */
+export async function crearCotizacion(data) {
+    const numeroFactura = (data.numeroFactura || '').trim();
+    const montoUSD = round2(data.montoDeudaUSD);
 
-        const montoDeuda = Number(cotizacionData.montoDeudaUSD) || 0;
-        const montoPagado = Number(cotizacionData.montoPagadoUSD) || 0;
-
-        const tasaOficial = await obtenerTasaBCV();
-        const montoBsCalculado = Number(cotizacionData.montoDeudaBs) || (montoDeuda * tasaOficial);
-
-        const mesCorte = `${fechaEmisionObj.getFullYear()}-${String(fechaEmisionObj.getMonth() + 1).padStart(2, '0')}`;
-
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-            numeroFactura: cotizacionData.numeroFactura,
-            clienteId: cotizacionData.clienteId,
-            clienteNombre: cotizacionData.clienteNombre,
-            fechaEmision: fechaEmisionObj.toISOString(),
-            diasCredito: dias,
-            fechaVencimiento: fechaVencimientoObj.toISOString(),
-            montoDeudaUSD: montoDeuda,
-            montoDeudaBs: montoBsCalculado,
-            tasaBCV: tasaOficial,
-            montoPagadoUSD: montoPagado,
-            observaciones: cotizacionData.observaciones?.trim() || '',
-            mesCorte: mesCorte,
-            activo: true,
-            createdAt: serverTimestamp()
-        });
-
-        return { id: docRef.id, success: true };
-    } catch (error) {
-        console.error("Error al crear cotización:", error);
-        throw error;
+    if (!numeroFactura || !data.clienteId || !data.fechaEmision || !(montoUSD > 0)) {
+        throw new Error('Faltan datos obligatorios de la cotización');
     }
+
+    // Evitar duplicados de número de factura
+    const dup = await getDocs(query(
+        collection(db, COLLECTION_NAME),
+        where("activo", "==", true),
+        where("numeroFactura", "==", numeroFactura)
+    ));
+    if (!dup.empty) {
+        throw new Error(`Ya existe una cotización con el número ${numeroFactura}`);
+    }
+
+    const tasa = await obtenerTasaBCV();
+    const montoBsManual = Number(data.montoDeudaBs) || 0;
+    const montoBs = montoBsManual > 0 ? round2(montoBsManual) : round2(montoUSD * tasa);
+
+    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+        numeroFactura,
+        clienteId: data.clienteId,
+        clienteNombre: data.clienteNombre,
+        fechaEmision: data.fechaEmision,                                   // 'YYYY-MM-DD'
+        diasCredito: DIAS_CREDITO,
+        fechaVencimiento: sumarDias(data.fechaEmision, DIAS_CREDITO),      // 'YYYY-MM-DD'
+        montoDeudaUSD: montoUSD,
+        montoDeudaBs: montoBs,
+        tasaBCV: tasa,
+        montoPagadoUSD: 0,
+        observaciones: (data.observaciones || '').trim(),
+        fechaCarga: getHoy(),
+        mesCorte: getMesActual(),
+        activo: true,
+        createdAt: serverTimestamp()
+    });
+
+    return { id: docRef.id, success: true };
+}
+
+// Eliminación lógica (no se editan, solo se crean o eliminan)
+export async function eliminarCotizacion(cotizacionId) {
+    await updateDoc(doc(db, COLLECTION_NAME, cotizacionId), {
+        activo: false,
+        eliminadoAt: serverTimestamp()
+    });
+    return { success: true };
 }
 
 export function escucharCotizaciones(mes, callback) {
@@ -99,13 +114,7 @@ export function escucharCotizaciones(mes, callback) {
 
     return onSnapshot(q, (snapshot) => {
         const cotizaciones = snapshot.docs.map(procesarCotizacionDoc);
-        
-        cotizaciones.sort((a, b) => {
-            const fechaA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-            const fechaB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-            return fechaB - fechaA;
-        });
-
+        cotizaciones.sort((a, b) => createdAtMs(b) - createdAtMs(a));
         callback(cotizaciones);
     }, (error) => {
         console.error("Error al escuchar cotizaciones:", error);
@@ -114,21 +123,14 @@ export function escucharCotizaciones(mes, callback) {
 
 export async function obtenerCotizacionesPorMes(mes) {
     try {
-        const q = query(
+        const snapshot = await getDocs(query(
             collection(db, COLLECTION_NAME),
             where("activo", "==", true),
             where("mesCorte", "==", mes)
-        );
-        const snapshot = await getDocs(q);
-        const cotizaciones = snapshot.docs.map(procesarCotizacionDoc);
-        
-        cotizaciones.sort((a, b) => {
-            const fechaA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-            const fechaB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-            return fechaB - fechaA;
-        });
-
-        return cotizaciones;
+        ));
+        const lista = snapshot.docs.map(procesarCotizacionDoc);
+        lista.sort((a, b) => createdAtMs(a) - createdAtMs(b));
+        return lista;
     } catch (error) {
         console.error("Error al obtener cotizaciones por mes:", error);
         return [];
@@ -137,29 +139,16 @@ export async function obtenerCotizacionesPorMes(mes) {
 
 export async function obtenerCotizacionesPorCliente(clienteId) {
     try {
-        const q = query(
+        const snapshot = await getDocs(query(
             collection(db, COLLECTION_NAME),
             where("activo", "==", true),
             where("clienteId", "==", clienteId)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(procesarCotizacionDoc);
+        ));
+        const lista = snapshot.docs.map(procesarCotizacionDoc);
+        lista.sort((a, b) => createdAtMs(a) - createdAtMs(b));
+        return lista;
     } catch (error) {
         console.error("Error al obtener cotizaciones por cliente:", error);
-        return [];
-    }
-}
-
-export async function obtenerAbonosPorCliente(clienteId) {
-    try {
-        const q = query(
-            collection(db, "abonos"),
-            where("clienteId", "==", clienteId)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch (error) {
-        console.error("Error al obtener abonos por cliente:", error);
         return [];
     }
 }
