@@ -85,7 +85,7 @@ let cotizacionesMes = [];
       const info = await obtenerInfoTasaBCV({ force });
 
       if (!(info.tasa > 0)) {
-        el.textContent = `BCV: ${formatBs(info.tasa)} / $` + (fechaOk ? ` (valor ${formatFechaCorta(info.fechaFuente)})` : '');
+        el.textContent = `BCV: ${formatBs(info.tasa)} / $` + (fechaOk ? ` (act. ${formatFechaCorta(info.fechaFuente)})` : '');
         el.className = CLASES_TASA.error;
         el.title = "No se pudo consultar la tasa";
         if (force) showToast("No se pudo obtener la tasa BCV", "error");

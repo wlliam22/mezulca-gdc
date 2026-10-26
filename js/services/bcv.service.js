@@ -41,17 +41,21 @@ async function desdeNuestroServidor() {
 }
 
 // 2) Local (Live Server no tiene /api): consulta directa a dolarapi
-async function desdeDolarApi() {
-    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+async function desdeJustCarlux() {
+    const res = await fetch('https://bcv.justcarlux.dev/api/v1/rates', { cache: 'no-store' });
     if (!res.ok) throw new Error('Respuesta no válida');
     const data = await res.json();
-    const tasa = parseFloat(data.promedio ?? data.venta ?? data.monto);
+    const tasa = parseFloat(data?.rates?.usd);
     if (!(tasa > 0)) throw new Error('Tasa inválida');
-    return { tasa, fechaFuente: data.fechaActualizacion || null, fuente: 'dolarapi' };
+    return {
+        tasa,
+        fechaFuente: data.updatedAt ? new Date(data.updatedAt).toISOString() : null,
+        fuente: 'bcv.justcarlux.dev'
+    };
 }
 
 async function consultarAPIs() {
-    for (const fuente of [desdeNuestroServidor, desdeDolarApi]) {
+    for (const fuente of [desdeNuestroServidor, desdeJustCarlux, desdeDolarApi]) {
         try {
             return await fuente();
         } catch (error) {
