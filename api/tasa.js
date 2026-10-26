@@ -1,11 +1,11 @@
 // Vercel Serverless Function: GET /api/tasa
 async function fuentePrincipal() {
-    const r = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+    const r = await fetch('https://bcv.justcarlux.dev/api/v1/rates');
     if (!r.ok) throw new Error('dolarapi ' + r.status);
     const d = await r.json();
-    const tasa = parseFloat(d.promedio ?? d.venta ?? d.monto);
+    const tasa = parseFloat(d.rate.usd);
     if (!(tasa > 0)) throw new Error('tasa inválida');
-    return { tasa, fechaFuente: d.fechaActualizacion || null, fuente: 'dolarapi' };
+    return { tasa, fechaFuente: d.fechaActualizacion || null, fuente: 'dolarapi (respaldo)' };
 }
 
 async function fuenteRespaldo() {
