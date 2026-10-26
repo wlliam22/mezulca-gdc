@@ -13,7 +13,7 @@ import {
   obtenerAbonosPorCliente,
   anularAbono,
 } from "./services/abono.service.js";
-import { obtenerTasaBCV } from "./services/bcv.service.js";
+import { obtenerInfoTasaBCV } from "./services/bcv.service.js";
 import {
   renderizarCotizaciones,
   renderizarResumenDia,
@@ -27,14 +27,16 @@ import {
   configurarFormAbono,
   configurarFormCotizacion,
 } from "./ui/modals.js";
-import { getMesActual, getNombreMes } from "./utils/dateUtils.js";
+import {
+  getMesActual,
+  getNombreMes,
+  formatFechaCorta,
+} from "./utils/dateUtils.js";
 import { formatBs } from "./utils/currencyUtils.js";
 import { cargarClientesEnSelect } from "./ui/selects.js";
 import { setupTabs } from "./ui/tabs.js";
 import { showToast } from "./utils/toast.js";
 import { mostrarConfirmacion } from "./utils/dialog.js";
-import { obtenerInfoTasaBCV } from "./services/bcv.service.js";
-import { getMesActual, getNombreMes, formatFechaCorta } from './utils/dateUtils.js';
 
 let unsubscribeCotizaciones = null;
 let clientesCache = [];
