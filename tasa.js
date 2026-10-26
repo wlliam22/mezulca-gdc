@@ -1,38 +1,62 @@
 // Vercel Serverless Function: GET /api/tasa
-async function fuentePrincipal() {
+const https = require('https');
+
+function getHTML(url) {
+    return new Promise((resolve, reject) => {
+        const req = https.get(url, {
+            rejectUnauthorized: false, // el BCV suele tener la cadena SSL incompleta
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 8000
+        }, (res) => {
+            if (res.statusCode !== 200) {
+                res.resume();
+                return reject(new Error('bcv ' + res.statusCode));
+            }
+            let body = '';
+            res.setEncoding('utf8');
+            res.on('data', (c) => (body += c));
+            res.on('end', () => resolve(body));
+        });
+        req.on('timeout', () => req.destroy(new Error('timeout')));
+        req.on('error', reject);
+    });
+}
+
+// Fuente principal: página oficial del BCV
+async function desdeBCV() {
+    const html = await getHTML('https://www.bcv.org.ve/');
+
+    const bloque = html.match(/id="dolar"[\s\S]*?<strong>\s*([\d.,]+)\s*<\/strong>/i);
+    if (!bloque) throw new Error('No se encontró la tasa en la página del BCV');
+    const tasa = parseFloat(bloque[1].replace(/\./g, '').replace(',', '.'));
+    if (!(tasa > 0)) throw new Error('tasa inválida');
+
+    const fecha = html.match(/Fecha\s*Valor[\s\S]*?content="(\d{4}-\d{2}-\d{2})/i);
+    const fechaFuente = fecha ? `${fecha[1]}T00:00:00-04:00` : null;
+
+    return { tasa, fechaFuente, fuente: 'bcv.org.ve' };
+}
+
+// Respaldo: API agregadora
+async function desdeDolarApi() {
     const r = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
     if (!r.ok) throw new Error('dolarapi ' + r.status);
     const d = await r.json();
-    const tasa = parseFloat(d.promedio ?? d.venta ?? d.monto);
+    const tasa = parseFloat(d.promedio);
     if (!(tasa > 0)) throw new Error('tasa inválida');
-    return { tasa, fechaFuente: d.fechaActualizacion || null, fuente: 'dolarapi' };
-}
-
-async function fuenteRespaldo() {
-    const r = await fetch('https://pydolarve.org/api/v1/dollar?page=bcv');
-    if (!r.ok) throw new Error('pydolarve ' + r.status);
-    const d = await r.json();
-    const usd = d?.monitors?.usd ?? d?.monedas?.usd;
-    const tasa = parseFloat(usd?.price ?? usd?.promedio);
-    if (!(tasa > 0)) throw new Error('tasa inválida');
-    return { tasa, fechaFuente: usd?.last_update ?? usd?.fecha ?? null, fuente: 'pydolarve' };
+    return { tasa, fechaFuente: d.fechaActualizacion || null, fuente: 'dolarapi (respaldo)' };
 }
 
 module.exports = async (req, res) => {
-    const resultados = await Promise.allSettled([fuentePrincipal(), fuenteRespaldo()]);
-    const validos = resultados.filter(r => r.status === 'fulfilled').map(r => r.value);
-
-    if (validos.length === 0) {
-        res.setHeader('Cache-Control', 'no-store');
-        return res.status(502).json({ error: 'No se pudo obtener la tasa' });
+    for (const fuente of [desdeBCV, desdeDolarApi]) {
+        try {
+            const data = await fuente();
+            res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+            return res.status(200).json(data);
+        } catch (error) {
+            console.warn(`${fuente.name} falló:`, error.message);
+        }
     }
-
-    const ms = (v) => {
-        const t = v.fechaFuente ? new Date(v.fechaFuente).getTime() : NaN;
-        return isNaN(t) ? 0 : t;
-    };
-    validos.sort((a, b) => ms(b) - ms(a)); // la más reciente primero
-
-    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
-    return res.status(200).json(validos[0]);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(502).json({ error: 'No se pudo obtener la tasa' });
 };

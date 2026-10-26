@@ -34,6 +34,7 @@ import { setupTabs } from "./ui/tabs.js";
 import { showToast } from "./utils/toast.js";
 import { mostrarConfirmacion } from "./utils/dialog.js";
 import { obtenerInfoTasaBCV } from "./services/bcv.service.js";
+import { getMesActual, getNombreMes, formatFechaCorta } from './utils/dateUtils.js';
 
 let unsubscribeCotizaciones = null;
 let clientesCache = [];
@@ -84,7 +85,7 @@ let cotizacionesMes = [];
       const info = await obtenerInfoTasaBCV({ force });
 
       if (!(info.tasa > 0)) {
-        el.textContent = "BCV: no disponible (ingrésala manualmente)";
+        el.textContent = `BCV: ${formatBs(info.tasa)} / $` + (fechaOk ? ` (valor ${formatFechaCorta(info.fechaFuente)})` : '');
         el.className = CLASES_TASA.error;
         el.title = "No se pudo consultar la tasa";
         if (force) showToast("No se pudo obtener la tasa BCV", "error");
