@@ -87,7 +87,7 @@ let cotizacionesMes = [];
       const info = await obtenerInfoTasaBCV({ force });
 
       if (!(info.tasa > 0)) {
-        el.textContent = `BCV: ${formatBs(info.tasa)} / $` + (fechaOk ? ` (act. ${formatFechaCorta(info.fechaFuente)})` : '');
+        el.textContent = "BCV: no disponible (ingrésala manualmente)";
         el.className = CLASES_TASA.error;
         el.title = "No se pudo consultar la tasa";
         if (force) showToast("No se pudo obtener la tasa BCV", "error");
@@ -101,12 +101,14 @@ let cotizacionesMes = [];
         : 0;
       const vieja = diasViejo > 3;
 
-      el.textContent = `BCV: ${formatBs(info.tasa)} / $`;
+      el.textContent =
+        `BCV: ${formatBs(info.tasa)} / $` +
+        (fechaOk ? ` (act. ${formatFechaCorta(info.fechaFuente)})` : "");
       el.className = !info.ok || vieja ? CLASES_TASA.aviso : CLASES_TASA.ok;
       el.title = [
         fechaOk
-          ? `Tasa publicada: ${fuente.toLocaleString("es-VE")}`
-          : "La fuente no indica fecha de publicación",
+          ? `Tasa actualizada: ${fuente.toLocaleString("es-VE")}`
+          : "La fuente no indica fecha de actualización",
         info.consultadoAt
           ? `Consultada: ${new Date(info.consultadoAt).toLocaleString("es-VE")}`
           : "",
@@ -126,6 +128,10 @@ let cotizacionesMes = [];
           info.ok ? "success" : "warning",
         );
       }
+    } catch (error) {
+      console.error("Error al mostrar la tasa:", error);
+      el.textContent = "BCV: no disponible (ingrésala manualmente)";
+      el.className = CLASES_TASA.error;
     } finally {
       icono?.classList.remove("fa-spin");
       if (btn) btn.disabled = false;

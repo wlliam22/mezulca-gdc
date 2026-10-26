@@ -54,15 +54,14 @@ async function desdeJustCarlux() {
     };
 }
 
-async function consultarAPIs() {
-    for (const fuente of [desdeNuestroServidor, desdeJustCarlux, desdeDolarApi]) {
-        try {
-            return await fuente();
-        } catch (error) {
-            console.warn(`⚠️ ${fuente.name} falló:`, error.message);
-        }
-    }
-    return null;
+// 3) Respaldo: dolarapi
+async function desdeDolarApi() {
+    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Respuesta no válida');
+    const data = await res.json();
+    const tasa = parseFloat(data.promedio ?? data.venta ?? data.monto);
+    if (!(tasa > 0)) throw new Error('Tasa inválida');
+    return { tasa, fechaFuente: data.fechaActualizacion || null, fuente: 'dolarapi (respaldo)' };
 }
 
 /**
