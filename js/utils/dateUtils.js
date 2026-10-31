@@ -10,12 +10,24 @@ const pad = (n) => String(n).padStart(2, '0');
  */
 export function aFecha(valor) {
     if (!valor) return null;
-    if (typeof valor.toDate === 'function') return valor.toDate();
+    if (typeof valor.toDate === 'function') return valor.toDate(); // Timestamp Firestore
     if (valor instanceof Date) return new Date(valor.getTime());
-    if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
-        const [y, m, d] = valor.split('-').map(Number);
-        return new Date(y, m - 1, d);
+    
+    // Si es un string
+    if (typeof valor === 'string') {
+        // Si es formato ISO completo (ej: 2025-04-07T00:00:00.000Z), extraemos solo YYYY-MM-DD
+        if (valor.includes('T')) {
+            const soloFecha = valor.split('T')[0];
+            const [y, m, d] = soloFecha.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        // Si ya es YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+            const [y, m, d] = valor.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
     }
+    
     const d = new Date(valor);
     return isNaN(d.getTime()) ? null : d;
 }

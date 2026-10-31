@@ -117,7 +117,15 @@ function actualizarTotales(totales) {
 // Consolidado del día: lo cargado hoy
 export function renderizarResumenDia(cotizaciones = []) {
     const hoy = getHoy();
-    const delDia = cotizaciones.filter(c => c.fechaCarga === hoy);
+    // Filtramos por fechaCarga O por createdAt del día de hoy
+    const delDia = cotizaciones.filter(c => {
+        if (c.fechaCarga === hoy) return true;
+        if (c.createdAt) {
+            const d = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+            return aISODia(d) === hoy;
+        }
+        return false;
+    });
     const total = delDia.reduce((acc, c) => acc + (c.montoDeudaUSD || 0), 0);
 
     const cant = document.getElementById('resumenHoyCant');

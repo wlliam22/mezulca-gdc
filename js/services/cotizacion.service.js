@@ -32,16 +32,33 @@ function createdAtMs(c) {
 
 function procesarCotizacionDoc(docSnap) {
     const data = docSnap.data();
-    const deuda = Number(data.montoDeudaUSD) || 0;
+    
+    let deudaUSD = Number(data.montoDeudaUSD) || 0;
+    const deudaBs = Number(data.montoDeudaBs) || 0;
+    const tasa = Number(data.tasaBCV) || 0;
+    
+    // 🔥 SI NO HAY USD PERO SÍ BS, CALCULAMOS EL USD
+    if (deudaUSD === 0 && deudaBs > 0) {
+        // Usamos la tasa de la cotización, o 40 como respaldo si no hay
+        const tasaCalculo = tasa > 0 ? tasa : 40; 
+        deudaUSD = deudaBs / tasaCalculo;
+        deudaUSD = round2(deudaUSD);
+    }
+
     const pagado = Number(data.montoPagadoUSD) || 0;
-    const saldo = Math.max(0, round2(deuda - pagado));
-    const estatus = calcularEstatus(data);
+    const saldo = Math.max(0, round2(deudaUSD - pagado));
+    
+    // Recalculamos el estatus con el USD real
+    const cotTemp = { ...data, montoDeudaUSD: deudaUSD };
+    const estatus = calcularEstatus(cotTemp);
 
     return {
         id: docSnap.id,
         ...data,
+        montoDeudaUSD: deudaUSD, // Sobrescribimos con el valor calculado
+        montoDeudaBs: deudaBs,
         observaciones: data.observaciones || '',
-        tasaBCV: data.tasaBCV || 0,
+        tasaBCV: tasa,
         saldoPendiente: saldo,
         estatus,
         diasVencidos: estatus === "Vencido" ? calcularDiasVencidos(data.fechaVencimiento) : 0
@@ -106,14 +123,39 @@ export async function eliminarCotizacion(cotizacionId) {
 }
 
 export function escucharCotizaciones(mes, callback) {
+    // En lugar de filtrar en Firestore (que fallará con los datos viejos),
+    // traemos todas y filtramos en JS.
     const q = query(
         collection(db, COLLECTION_NAME),
-        where("activo", "==", true),
-        where("mesCorte", "==", mes)
+        where("activo", "==", true)
     );
 
     return onSnapshot(q, (snapshot) => {
-        const cotizaciones = snapshot.docs.map(procesarCotizacionDoc);
+        let cotizaciones = snapshot.docs.map(procesarCotizacionDoc);
+        
+        // Filtro inteligente: acepta mesCorte "2025-04", "ABRIL 2025", "ABRIL", etc.
+        if (mes) {
+            const [year, month] = mes.split('-'); // "2025", "04"
+            const mesesTexto = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+            const nombreMes = mesesTexto[parseInt(month) - 1]; // "ABRIL"
+
+            cotizaciones = cotizaciones.filter(c => {
+                const mc = String(c.mesCorte || '').toUpperCase();
+                // Si el mesCorte es "2025-04" (formato nuevo)
+                if (mc === mes) return true;
+                // Si el mesCorte es "ABRIL" (formato viejo Excel)
+                if (mc === nombreMes) return true;
+                // Si es "ABRIL 2025"
+                if (mc.includes(nombreMes) && mc.includes(year)) return true;
+                // Si no tiene mesCorte, lo mostramos en el mes actual basándonos en createdAt
+                if (!mc && c.createdAt) {
+                    const d = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+                    return d.getFullYear() === parseInt(year) && (d.getMonth() + 1) === parseInt(month);
+                }
+                return false;
+            });
+        }
+
         cotizaciones.sort((a, b) => createdAtMs(b) - createdAtMs(a));
         callback(cotizaciones);
     }, (error) => {
